@@ -251,6 +251,7 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .cfg-nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;flex-direction:column;gap:2px}
 .cfg-nav button{text-align:left;border:0;background:none;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--suave);font-weight:500;white-space:nowrap}
 .cfg-nav button:hover{background:var(--superficie-2);color:var(--texto)}
+.cfg-nav button.on{background:var(--superficie);color:var(--titulo);box-shadow:var(--sombra);font-weight:600}
 .cfg-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:18px}
 .guardado{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--suave);padding:6px 12px;border-radius:999px;background:var(--superficie-2)}
 .guardado::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
@@ -269,6 +270,8 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .unidad input[type=color]{width:44px;height:38px;padding:4px;cursor:pointer}
 .unidad textarea{width:440px;min-height:120px;line-height:1.5;border:0;background:none;padding:9px 10px;resize:vertical}
 @media (max-width:560px){.prow{flex-direction:column;align-items:stretch}.unidad input,.unidad input[type=text],.unidad textarea{width:100%}}
+.unidad .pre{padding:0 0 0 10px;font-weight:600}
+.unidad input[data-money]{width:120px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .unidad span{padding:0 10px;color:var(--suave);font-size:13px;white-space:nowrap}
 .cfg input:disabled,.cfg textarea:disabled{opacity:.7;cursor:not-allowed}
 .subt{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);margin:18px 0 2px}
@@ -466,7 +469,7 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
     <nav class="cfg-nav" id="cfg-nav" aria-label="Apartados de configuración"></nav>
     <div>
       <div class="cfg-head">
-        <div><h1>Configuración</h1><p class="lead">Tarifas, márgenes y reglas del cotizador. Los cambios aplican para todos los vendedores.</p></div>
+        <div><h1>Configuración</h1><p class="lead">Tarifas, márgenes y reglas del cotizador. Los cambios aplican para todo el equipo.</p></div>
         <span class="guardado" id="guardado">Cargando…</span>
       </div>
       <div class="secs" id="secs"></div>
@@ -931,10 +934,11 @@ function ir(vista){
   ["cot","his","cfg"].forEach(k=>{$("v-"+k).hidden=k!==vista;const b=$("nav-"+k);if(k===vista)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   $("barra").hidden=vista!=="cot";
   if(vista==="his")renderHist();
-  if(vista==="cfg")cargarHistorial();
+  if(vista==="cfg"){cargarHistorial();requestAnimationFrame(marcarSeccion);}
   window.scrollTo(0,0);
 }
 $$(".nav button").forEach(b=>b.addEventListener("click",()=>ir(b.dataset.v)));
+document.addEventListener("click",e=>{if(e.target.closest("[data-ir-cot]"))ir("cot");});
 
 /* =================== Historial =================== */
 $("f-estado").innerHTML=[["activas","Activas"],["todas","Todas"],...ESTADOS].map(e=>`<button data-e="${e[0]}" aria-pressed="${e[0]==="activas"}">${e[1]}</button>`).join("");
@@ -984,7 +988,7 @@ function renderHist(){
   const qtxt=$("f-buscar").value.trim().toLowerCase();
   const lst=base.filter(q=>(S.fEstado==="todas"||(S.fEstado==="activas"?act.includes(q):q.estado===S.fEstado))&&(!qtxt||(q.cliente||"").toLowerCase().includes(qtxt)||(q.folio||"").toLowerCase().includes(qtxt)));
   S.lista=lst;
-  if(!lst.length){$("lista").innerHTML=`<div class="vacio">${S.quotes.length?"No hay cotizaciones con estos filtros.":"Aún no hay cotizaciones guardadas. Las que guardes o descargues en PDF aparecerán aquí."}</div>`;}
+  if(!lst.length){$("lista").innerHTML=`<div class="vacio">${S.quotes.length?"No hay cotizaciones con estos filtros.":`Aún no hay cotizaciones guardadas. Las que guardes o descargues en PDF aparecerán aquí.<br><button class="btn chico" style="margin-top:14px" data-ir-cot>Crear primera cotización</button>`}</div>`;}
   else $("lista").innerHTML=`<div class="q h"><span>Folio</span><span>Cliente</span><span>Vendedor</span><span style="text-align:right">Subtotal</span><span>Estado</span><span></span></div>`+
     lst.map(q=>{const t=seguimiento(q);return `<div class="q"><span class="fo">${esc(q.folio)}<br><small style="color:var(--suave);font-weight:400">${fecha(q.creado)}</small></span>
       <span class="cl"><b>${esc(q.cliente)}</b><small>${esc(q.titulo)} · ${hrs(q.horas||0)}${q.descPct?" · "+q.descPct+"% desc.":""}${q.origenGap?" · de "+esc(q.origenGap):""}</small>${t?`<span class="tag ${t[0]}">${t[1]}</span>`:""}</span>
@@ -1088,6 +1092,17 @@ const SECS=[
   {id:"com",t:"Comisiones",d:"Porcentaje de comisión según quién hizo la venta. Se calcula sobre el subtotal, sin IVA ni viáticos.",canales:true}
 ];
 let editable=true;
+/* resalta en el menú lateral la sección que se está viendo */
+function marcarSeccion(){
+  if($("v-cfg").hidden)return;
+  const secs=$$("#secs .sec, #sec-hist").filter(x=>!x.hidden);if(!secs.length)return;
+  const linea=innerHeight*0.33;let act=secs[0];
+  secs.forEach(x=>{if(x.getBoundingClientRect().top<=linea)act=x;});
+  if(innerHeight+scrollY>=document.documentElement.scrollHeight-4)act=secs[secs.length-1];
+  $$("#cfg-nav button").forEach(bt=>bt.classList.toggle("on","sec-"+bt.dataset.go===act.id));
+}
+let rafSec=0;addEventListener("scroll",()=>{cancelAnimationFrame(rafSec);rafSec=requestAnimationFrame(marcarSeccion);},{passive:true});
+function vigilarSecciones(){requestAnimationFrame(marcarSeccion);}
 /* ---------- Historial de cambios (solo administración, con Supabase) ---------- */
 const ETIQ={canales:"Comisiones por canal"},UNI={};
 SECS.forEach(sc=>{(sc.f||[]).forEach(f=>{ETIQ[f[0]]=f[1];UNI[f[0]]=f[3];});if(sc.tabla)ETIQ[sc.tabla.k]=sc.tabla.titulo;(sc.tablas||[]).forEach(t=>ETIQ[t.k]=t.titulo);(sc.tablasNP||[]).forEach(t=>ETIQ[t.k]=t.titulo);});
@@ -1125,10 +1140,10 @@ async function cargarHistorial(){
     return `<div class="hrow"><div><b>${esc(ETIQ[h.campo]||h.campo)}</b><small>${esc(S.names[h.cambiado_por]||"Sin nombre")} · ${esc(fechaN(h.creado))}</small></div><div class="cambio">${det}</div></div>`;
   }).join(""):`<p class="lead" style="font-size:14px">Todavía no hay cambios registrados.</p>`;
 }
-function prow(label,hint,input,u){return `<div class="prow"><div class="l"><b>${label}</b>${hint?`<small>${hint}</small>`:""}</div><div class="unidad">${input}${u?`<span>${u}</span>`:""}</div></div>`;}
+function prow(label,hint,input,u,pesos){return `<div class="prow"><div class="l"><b>${label}</b>${hint?`<small>${hint}</small>`:""}</div><div class="unidad">${pesos?`<span class="pre">$</span>`:""}${input}${u?`<span>${u}</span>`:""}${pesos?`<span>MXN</span>`:""}</div></div>`;}
 function tablaHTML(t){
   const arr=P[t.k];let h=`<div class="subt">${t.titulo}</div>`;
-  if(t.campo)return h+arr.map((r,i)=>prow(t.fila(r),"",`<input type="number" min="0" data-t="${t.k}" data-i="${i}" data-f="${t.campo}" value="${r[t.campo]}">`,t.u)).join("");
+  if(t.campo)return h+arr.map((r,i)=>prow(t.fila(r),"",t.u==="MXN"?`<input type="text" inputmode="numeric" data-money data-t="${t.k}" data-i="${i}" data-f="${t.campo}" value="${fmtN(r[t.campo])}">`:`<input type="number" min="0" data-t="${t.k}" data-i="${i}" data-f="${t.campo}" value="${r[t.campo]}">`,t.u==="MXN"?"":t.u,t.u==="MXN")).join("");
   const que=t.que||"usuarios";
   return h+arr.map((r,i)=>{
     const desde=i===0?1:(arr[i-1].hasta||0)+1;
@@ -1144,6 +1159,7 @@ function tablaNP(t){
 function campoCfg(f){
   if(f[3]==="txt")return prow(f[1],f[2],`<input type="text" data-k="${f[0]}" value="${esc(P[f[0]])}">`,"");
   if(f[3]==="area")return prow(f[1],f[2],`<textarea rows="5" data-k="${f[0]}">${esc(P[f[0]])}</textarea>`,"");
+  if(f[3]==="MXN")return prow(f[1],f[2],`<input type="text" inputmode="numeric" data-money data-k="${f[0]}" value="${fmtN(P[f[0]])}">`,"",true);
   return prow(f[1],f[2],`<input type="number" min="0" data-k="${f[0]}" value="${P[f[0]]}">`,f[3]);
 }
 function drawCfg(){
@@ -1159,6 +1175,7 @@ function drawCfg(){
   }).join("");
   $$("#secs input,#secs textarea").forEach(i=>i.disabled=!editable);
   $("reset").disabled=!editable;
+  vigilarSecciones();
 }
 drawCfg();
 $("cfg-nav").addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b)$("sec-"+b.dataset.go).scrollIntoView({behavior:"smooth",block:"start"});});
@@ -1167,9 +1184,9 @@ $("secs").addEventListener("input",e=>{
   if(i.dataset.k){
     const k=i.dataset.k;
     if(typeof DEF[k]==="string")P[k]=i.value;
-    else P[k]=parseFloat(i.value)||0;
+    else P[k]=numTxt(i.value);
   }else if(i.dataset.t){
-    const k=i.dataset.t;P[k][+i.dataset.i][i.dataset.f]=i.dataset.f==="n"?i.value:(parseFloat(i.value)||0);
+    const k=i.dataset.t;P[k][+i.dataset.i][i.dataset.f]=i.dataset.f==="n"?i.value:numTxt(i.value);
     const sp=document.querySelector(`[data-suma="${k}"]`);
     if(sp){const sm=P[k].reduce((a,r)=>a+(+r.p||0),0);sp.textContent=`Suma: ${sm}%${sm===100?"":". Debe sumar 100%."}`;sp.className="suma"+(sm===100?"":" mal");}
   }
