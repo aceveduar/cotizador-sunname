@@ -64,9 +64,9 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:14px}
 .brand img{height:38px;width:auto;display:block}
-.brand .logo-o{display:none}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand .logo-c{display:none}:root:not([data-theme="light"]) .brand .logo-o{display:block}}
-:root[data-theme="dark"] .brand .logo-c{display:none}:root[data-theme="dark"] .brand .logo-o{display:block}
+.logo-o{display:none!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .logo-c{display:none!important}:root:not([data-theme="light"]) .logo-o{display:block!important}}
+:root[data-theme="dark"] .logo-c{display:none!important}:root[data-theme="dark"] .logo-o{display:block!important}
 .brand .sep{width:1px;height:26px;background:var(--linea)}
 .brand small{font-size:14px;font-weight:500;color:var(--suave);letter-spacing:.02em}
 @media (max-width:560px){.brand img{height:30px}}
@@ -272,9 +272,12 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .unidad span{padding:0 10px;color:var(--suave);font-size:13px;white-space:nowrap}
 .cfg input:disabled,.cfg textarea:disabled{opacity:.7;cursor:not-allowed}
 .subt{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);margin:18px 0 2px}
-.login{position:fixed;inset:0;z-index:30;background:var(--fondo);display:grid;place-items:center;padding:24px 16px;overflow:auto}
-.login .caja{width:min(420px,100%);background:var(--superficie);border:1px solid var(--linea);border-radius:22px;padding:30px 28px;box-shadow:var(--sombra-md);display:grid;gap:16px}
-.login .caja>img{height:44px;width:auto;justify-self:start}
+.login{position:fixed;inset:0;z-index:30;background:radial-gradient(circle at 15% 20%,rgba(70,194,206,.28),transparent 45%),radial-gradient(circle at 85% 85%,rgba(127,82,160,.35),transparent 50%),var(--marca-degradado);display:grid;place-items:center;padding:24px 16px;overflow:auto}
+.login .caja{width:min(420px,100%);box-shadow:0 20px 60px rgba(14,30,53,.35)!important;background:var(--superficie);border:1px solid var(--linea);border-radius:22px;padding:30px 28px;box-shadow:var(--sombra-md);display:grid;gap:16px}
+.login .caja>img{height:46px;width:auto;justify-self:start}
+.login .pw{position:relative}
+.login .pw .txt{padding-right:84px}
+.login .pw button{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--titulo);font-weight:600;font-size:13px;cursor:pointer;padding:6px 8px}
 .login h1{font-size:24px;margin:4px 0 0}
 .login form{display:grid;gap:14px}
 .login .err{font-size:14px;color:var(--alerta);margin:0}
@@ -282,10 +285,15 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .login .link{border:0;background:none;color:var(--titulo);font-weight:600;cursor:pointer;padding:0;justify-self:start;font-size:14px}
 .login .btn{width:100%;height:48px}
 .login .pie{font-size:12.5px;color:var(--suave);text-align:center}
-.usuario{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--suave)}
-.usuario b{color:var(--texto);font-weight:600}
-.usuario .rol{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--acento-suave);color:var(--titulo);font-weight:600}
-.top-der{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top-der{display:flex;align-items:center;gap:12px}
+.usuario{position:relative;order:2}
+.avatar{width:42px;height:42px;border-radius:50%;border:0;background:var(--marca-degradado);color:#fff;font-weight:700;font-size:14px;letter-spacing:.02em;cursor:pointer;box-shadow:var(--sombra);display:grid;place-items:center}
+.avatar[aria-expanded="true"]{outline:3px solid var(--acento-suave)}
+.menu-u{position:absolute;right:0;top:52px;z-index:15;min-width:250px;background:var(--superficie);border:1px solid var(--linea);border-radius:16px;box-shadow:var(--sombra-md);padding:16px;display:grid;gap:4px}
+.menu-u b{font-size:15px;color:var(--texto)}
+.menu-u .correo{font-size:13px;color:var(--suave);overflow-wrap:anywhere}
+.menu-u .rol{justify-self:start;margin:8px 0 12px;font-size:12px;padding:3px 10px;border-radius:999px;background:var(--acento-suave);color:var(--titulo);font-weight:600}
+.menu-u .btn{width:100%}
 .nota-btn{position:fixed;left:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:50px;padding:11px 16px;background:var(--superficie);color:var(--titulo);font-weight:600;box-shadow:var(--sombra-md);cursor:pointer;border:1px solid var(--linea)}
 .nota-btn .cnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--marca-acento);color:var(--marca-texto-acento);font-size:12px;display:inline-grid;place-items:center}
 @media (max-width:920px){.nota-btn{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
@@ -309,7 +317,10 @@ dialog.notas::backdrop{background:rgba(14,30,53,.45)}
   <header class="top">
     <div class="brand"><img class="logo-c" id="logo-c" alt="Sunname"><img class="logo-o" id="logo-o" alt="Sunname"><span class="sep"></span><small>Cotizador</small></div>
     <div class="top-der">
-    <div class="usuario" id="usuario" hidden><b id="usr-nombre"></b><span class="rol" id="usr-rol"></span><button class="btn linea chico" id="salir">Salir</button></div>
+    <div class="usuario" id="usuario" hidden>
+      <button class="avatar" id="av-btn" aria-haspopup="true" aria-expanded="false" aria-controls="menu-u" title="Mi cuenta"><span id="av-ini"></span></button>
+      <div class="menu-u" id="menu-u" hidden><b id="usr-nombre"></b><span class="correo" id="usr-correo"></span><span class="rol" id="usr-rol"></span><button class="btn linea chico" id="salir">Cerrar sesión</button></div>
+    </div>
     <nav class="nav" aria-label="Secciones">
       <button id="nav-cot" data-v="cot" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Cotizar</span></button>
       <button id="nav-his" data-v="his"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg><span>Cotizaciones</span><span class="badge" id="nav-badge" hidden>0</span></button>
@@ -457,11 +468,11 @@ dialog.notas::backdrop{background:rgba(14,30,53,.45)}
 <div class="barra" id="barra"><div><small id="b-modo">Total con IVA</small><b id="b-total">$0</b></div><button class="btn" id="b-ver">Ver resumen</button></div>
 <div class="login" id="login" hidden>
   <div class="caja">
-    <img id="login-logo" alt="Sunname">
-    <div><h1 id="login-t">Inicia sesión</h1><p class="lead" id="login-sub" style="font-size:14px">Cotizador de Sunname</p></div>
+    <img class="logo-c" id="login-logo" alt="Sunname"><img class="logo-o" id="login-logo-o" alt="Sunname">
+    <div><h1 id="login-t">Inicia sesión</h1><p class="lead" id="login-sub" style="font-size:14px">Ingresa con tu correo de Sunname.</p></div>
     <form id="f-entrar">
       <label class="campo"><span>Correo</span><input class="txt" id="l-correo" type="email" autocomplete="username" required></label>
-      <label class="campo"><span>Contraseña</span><input class="txt" id="l-clave" type="password" autocomplete="current-password" required></label>
+      <label class="campo"><span>Contraseña</span><span class="pw"><input class="txt" id="l-clave" type="password" autocomplete="current-password" required><button type="button" id="l-ver" aria-label="Mostrar contraseña">Mostrar</button></span></label>
       <p class="err" id="l-err" hidden></p><p class="ok" id="l-ok" hidden></p>
       <button class="btn" type="submit" id="l-btn">Entrar</button>
       <button class="link" type="button" id="l-olvide">¿Olvidaste tu contraseña?</button>
@@ -1221,10 +1232,10 @@ function supaUser(sb,uid,perfil){
 
 /* pantalla de acceso */
 const verLogin=(modo,msg)=>{
-  $("login").hidden=false;$("login-logo").src=LOGO_CLARO;
+  $("login").hidden=false;$("login-logo").src=LOGO_CLARO;$("login-logo-o").src=LOGO_OSCURO;
   $("f-entrar").hidden=modo!=="entrar";$("f-clave").hidden=modo!=="clave";
   $("login-t").textContent=modo==="clave"?"Crea tu contraseña":"Inicia sesión";
-  $("login-sub").textContent=modo==="clave"?"Mínimo 8 caracteres.":modo==="cargando"?"Conectando…":"Cotizador de Sunname";
+  $("login-sub").textContent=modo==="clave"?"Mínimo 8 caracteres.":modo==="cargando"?"Conectando…":"Ingresa con tu correo de Sunname.";
   $("l-err").hidden=!msg;$("l-err").textContent=msg||"";$("l-ok").hidden=true;
 };
 async function entrar(session){
@@ -1233,7 +1244,9 @@ async function entrar(session){
   if(error||!perfil||!perfil.activo){S.saliendo=true;await S.sb.auth.signOut();verLogin("entrar",error?"No se pudo conectar. Intenta de nuevo.":"Tu usuario no tiene acceso. Pide a administración que lo active.");S.saliendo=false;return;}
   $("login").hidden=true;
   S.names[uid]=perfil.nombre;
-  $("usuario").hidden=false;$("usr-nombre").textContent=perfil.nombre||session.user.email;$("usr-rol").textContent=perfil.rol==="admin"?"Administración":"Ventas";
+  const nom=perfil.nombre||session.user.email,ini=nom.split(/\s+/).filter(w=>w.length>2||/^[A-ZÁÉÍÓÚÑ]/.test(w)).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  $("usuario").hidden=false;$("av-ini").textContent=ini||"?";$("av-btn").title=nom;
+  $("usr-nombre").textContent=nom;$("usr-correo").textContent=session.user.email;$("usr-rol").textContent=perfil.rol==="admin"?"Administración":"Ventas";
   await conectar(supaDB(S.sb),supaUser(S.sb,uid,perfil),localDL);
 }
 async function iniciarSupabase(){
@@ -1255,6 +1268,7 @@ $("f-entrar").addEventListener("submit",async e=>{
   if(error){$("l-err").hidden=false;$("l-err").textContent=/confirm/i.test(error.message)?"Tu correo aún no está confirmado.":"Correo o contraseña incorrectos.";return;}
   await entrar(data.session);
 });
+$("l-ver").addEventListener("click",()=>{const i=$("l-clave"),v=i.type==="password";i.type=v?"text":"password";$("l-ver").textContent=v?"Ocultar":"Mostrar";$("l-ver").setAttribute("aria-label",v?"Ocultar contraseña":"Mostrar contraseña");i.focus();});
 $("l-olvide").addEventListener("click",async()=>{
   const correo=$("l-correo").value.trim();
   if(!correo){$("l-err").hidden=false;$("l-err").textContent="Escribe tu correo y vuelve a dar clic.";$("l-correo").focus();return;}
@@ -1271,6 +1285,10 @@ $("f-clave").addEventListener("submit",async e=>{
   const {data:{session}}=await S.sb.auth.getSession();await entrar(session);toast("Contraseña guardada");
 });
 $("salir").addEventListener("click",async()=>{await S.sb.auth.signOut();});
+const menuU=abrir=>{$("menu-u").hidden=!abrir;$("av-btn").setAttribute("aria-expanded",String(abrir));};
+$("av-btn").addEventListener("click",e=>{e.stopPropagation();menuU($("menu-u").hidden);});
+document.addEventListener("click",e=>{if(!e.target.closest("#usuario"))menuU(false);});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")menuU(false);});
 
 /* =================== Conexión con la plataforma =================== */
 async function conectar(db,user,dl){
