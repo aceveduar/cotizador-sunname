@@ -546,6 +546,8 @@ const numTxt=t=>parseFloat(String(t).replace(/[^\d.]/g,""))||0;
 const fmtN=n=>Math.round(numTxt(n)).toLocaleString("es-MX");
 const v=id=>Math.max(0,numTxt($(id).value));
 document.addEventListener("focusout",e=>{if(e.target.matches&&e.target.matches("[data-money]"))e.target.value=fmtN(e.target.value);});
+const limpio=x=>Math.round(x*1e6)/1e6;
+const arriba=(x,paso)=>Math.ceil(limpio(x/paso))*paso;
 const money=x=>(x<0?"-":"")+"$"+Math.round(Math.abs(x)).toLocaleString("es-MX");
 const hrs=x=>(Math.round(x*10)/10).toLocaleString("es-MX")+" h";
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -574,6 +576,7 @@ $("p-vis").innerHTML=stepper("p-nvis","Número de visitas",4)+stepper("p-hvis","
 $("p-ext").innerHTML=stepper("p-dev","Horas de desarrollo",40,5,"Validadas por el área técnica")+stepper("p-pm","Meses de soporte",3,1,"Después de salir a producción")+stepper("p-pmh","Horas por mes",10);
 $("g-alc").innerHTML=stepper("g-usr","Usuarios",60)+stepper("g-emp","Empresas",2)+stepper("g-areas","Áreas a analizar",8)+stepper("g-suc","Sucursales o plantas",3);
 $("g-viat-w").innerHTML=stepper("g-viat","Viáticos estimados",10000,1000,"",true);
+["h-emp","p-areas","p-emp","p-cons","g-emp","g-areas"].forEach(id=>$(id).setAttribute("min","1"));
 const FRESH=snapshot();
 
 function drawDynamic(){
@@ -636,13 +639,13 @@ function calc(){
     const base=[["Base por "+u+" usuarios",tier(P.pUsuarios,u)],["Áreas ("+ar+" × "+P.hArea+" h)",ar*P.hArea],["Empresas adicionales",(em-1)*P.hEmpresa],
       ["Visitas ("+v("p-nvis")+" × "+v("p-hvis")+" h × "+co+" consultores)",v("p-nvis")*v("p-hvis")*co]];
     const bF=base.reduce((s,r)=>s+r[1],0),fac=(1+P.gestion/100)*(1+P.conting/100);
-    const impF=Math.ceil(bF*fac/5)*5,impD=dev?Math.ceil(dev*fac/5)*5:0,imp=impF+impD,post=v("p-pm")*v("p-pmh");
+    const impF=arriba(bF*fac,5),impD=dev?arriba(dev*fac,5):0,imp=impF+impD,post=v("p-pm")*v("p-pmh");
     horas=imp+post;viat=v("p-nvis")*v("p-vvis");
     sub=impF*P.tarifa+impD*P.tarifaDev+post*P.tarifaSoporte;
     desg=[...base.filter(r=>r[1]).map(r=>[r[0],hrs(r[1])]),dev?["Desarrollo validado",hrs(dev)]:null,
       ["Gestión "+P.gestion+"% y contingencia "+P.conting+"%",hrs(imp-bF-dev)],["Implementación funcional",hrs(impF),"t"],impD?["Desarrollo",hrs(impD),"t"]:null,
       post?["Soporte post producción",hrs(post)]:null,["Tarifa funcional",money(P.tarifa)],impD?["Tarifa desarrollo",money(P.tarifaDev)]:null,post?["Tarifa soporte",money(P.tarifaSoporte)]:null].filter(Boolean);
-    const sem=Math.ceil(imp/(co*Math.max(1,P.hSemana)));
+    const sem=Math.max(1,arriba(imp/(co*Math.max(1,P.hSemana)),1));
     dur=`${sem} semana${sem>1?"s":""} de implementación`+(post?` y ${v("p-pm")} meses de soporte`:"");
     detalle=`Implementación de Odoo para ${u} usuarios en ${ar} áreas${em>1?" y "+em+" empresas":""}, con ${co} consultor${co>1?"es":""} asignado${co>1?"s":""}. Incluye análisis, diseño, configuración, migración de datos, capacitación, pruebas, salida a producción y estabilización${v("p-nvis")?", con "+v("p-nvis")+" visitas presenciales":""}.`;
     conceptos=[[`Implementación funcional Odoo (${hrs(impF)})`,impF*P.tarifa]];
@@ -665,14 +668,16 @@ function calc(){
     horas=r.reduce((s,x)=>s+x[1],0);
     $("g-viat-w").hidden=!$("g-visita").checked;
     viat=$("g-visita").checked?v("g-viat"):0;
-    const red=Math.max(1,P.gRedondeo);sub=Math.ceil((horas*P.tarifa+viat)/red)*red-viat;
+    const red=Math.max(1,P.gRedondeo);sub=arriba(horas*P.tarifa+viat,red)-viat;
     desg=[...r.filter(x=>x[1]).map(x=>[x[0],hrs(x[1])]),["Total de horas",hrs(horas),"t"],["Tarifa por hora",money(P.tarifa)]];
     dur=horas<=20?"1 a 2 semanas":horas<=40?"2 a 4 semanas":"4 a 6 semanas";
     detalle=`Análisis de brechas (GAP) para ${v("g-usr")} usuarios, ${v("g-emp")} empresa${v("g-emp")>1?"s":""}, ${v("g-areas")} áreas y ${v("g-suc")} sucursales o plantas. Entregables: documento de análisis GAP, reportes del proceso actual contra Odoo${$("g-dev").checked?", lista y especificación preliminar de desarrollos":""} y propuesta de fases para el proyecto.`;
     conceptos=[[`Análisis GAP (${hrs(horas)})`,sub]];
   }
 
-  const dAmt=sub*desc,subD=sub-dAmt,iva=(subD+viat)*P.iva/100,total=subD+viat+iva,com=subD*canal.c/100;
+  sub=Math.round(sub);viat=Math.round(viat);conceptos=conceptos.map(c=>[c[0],Math.round(c[1])]);
+  const dAmt=Math.round(sub*desc),subD=sub-dAmt,iva=Math.round((subD+viat)*P.iva/100),total=subD+viat+iva,com=Math.round(subD*canal.c/100);
+  const anticipo=Math.round(total*P.anticipo/100);
   const aprobado=S.currentId&&S.aprob[S.currentId]&&S.aprob[S.currentId].desc>=descPct;
   const requiere=descPct>P.descMax&&!S.admin&&!aprobado;
   const da=$("desc-aviso");
@@ -692,8 +697,9 @@ function calc(){
   if(dAmt)filas.push(["Precio de lista",money(sub),"d"],["Descuento "+descPct+"%","−"+money(dAmt),"d"]);
   filas.push(["Subtotal",money(subD)]);if(viat)filas.push(["Viáticos",money(viat)]);
   filas.push(["IVA "+P.iva+"%",money(iva)],["Total",money(total),"t"]);
-  const pagos=modo==="proy"?P.fases.map(x=>[x.n,x.p,total*x.p/100]):[["Anticipo",P.anticipo,total*P.anticipo/100],["Saldo por hitos",100-P.anticipo,total*(100-P.anticipo)/100]];
-  if(modo!=="proy")filas.push(["Anticipo "+P.anticipo+"%",money(total*P.anticipo/100),"d"]);
+  let pagos=modo==="proy"?P.fases.map(x=>[x.n,x.p,Math.round(total*x.p/100)]):[["Anticipo",P.anticipo,anticipo],["Saldo por hitos",100-P.anticipo,total-anticipo]];
+  if(modo==="proy"&&pagos.length&&P.fases.reduce((a,x)=>a+(+x.p||0),0)===100){const resto=total-pagos.slice(0,-1).reduce((a,x)=>a+x[2],0);pagos[pagos.length-1][2]=resto;}
+  if(modo!=="proy")filas.push(["Anticipo "+P.anticipo+"%",money(anticipo),"d"]);
   const uLic=modo==="horas"?v("h-emp"):modo==="proy"?v("p-usr"):v("g-usr");
   const custom=(modo==="proy"&&v("p-dev")>0)||(modo==="gap"&&$("g-dev").checked);
   const pLic=custom?P.licCustom:P.licStandard;
@@ -725,7 +731,7 @@ function calc(){
 
   const cli=$("cliente").value.trim();
   const emp=P.empresa||"Sunname",contacto=$("contacto").value.trim().split(/[,(]/)[0].trim();
-  const pagosTxt=modo==="proy"?"Plan de pagos:\n"+pagos.map(x=>`  - ${x[0]}: ${x[1]}% (${money(x[2])})`).join("\n"):`Forma de pago: ${P.pago}. Anticipo: ${money(total*P.anticipo/100)}.`;
+  const pagosTxt=modo==="proy"?"Plan de pagos:\n"+pagos.map(x=>`  - ${x[0]}: ${x[1]}% (${money(x[2])})`).join("\n"):`Forma de pago: ${P.pago}. Anticipo: ${money(anticipo)}.`;
   const firma=[S.names[S.meId],emp,P.telEmpresa,P.correoEmpresa].filter(Boolean).join("\n");
   const texto=`Asunto: Cotización ${S.currentFolio?S.currentFolio+" · ":""}${titulo} · ${cli||"tu empresa"}
 
@@ -746,7 +752,7 @@ Adjunto el PDF con el detalle. Quedo atento a tus comentarios.
 Saludos,
 ${firma}`;
   $("r-texto").textContent=texto;
-  S.R={modo,titulo,horas,sub,dAmt,descPct,subD,viat,iva,total,com,canal,dur,detalle,conceptos,texto,cliente:cli,requiere,flags,pagos,fasesH,lic,cred,gapFolio:modo==="proy"?$("p-gapfolio").value:""};
+  S.R={modo,titulo,horas,sub,dAmt,anticipo,descPct,subD,viat,iva,total,com,canal,dur,detalle,conceptos,texto,cliente:cli,requiere,flags,pagos,fasesH,lic,cred,gapFolio:modo==="proy"?$("p-gapfolio").value:""};
   return S.R;
 }
 
@@ -774,6 +780,7 @@ async function guardar(estadoForzado){
   if(!S.db){toast("El historial no está disponible en esta vista");return false;}
   const R=calc();
   if(!R.cliente){toast("Escribe el nombre del cliente antes de guardar");$("cliente").focus();return false;}
+  if(!R.horas||R.total<=0){toast("Completa la cotización antes de guardar (no tiene horas).");return false;}
   const now=new Date().toISOString();
   try{
     if(!S.currentId){S.currentFolio=await nuevoFolio();S.currentId=S.currentFolio;}
@@ -853,7 +860,7 @@ async function hacerPDF(R){
   const tc=[255,255,255];
   d.setTextColor(...tc);d.setFont("helvetica","bold");d.setFontSize(12);T("Total MXN",tx,y+17);T(money(R.total),W-M-12,y+17,{align:"right"});
   y+=46;d.setFont("helvetica","normal");d.setFontSize(10);
-  if(R.modo!=="proy"){d.setTextColor(95,106,102);T(`Anticipo ${P.anticipo}%`,tx,y);d.setTextColor(27,34,32);T(money(R.total*P.anticipo/100),W-M-12,y,{align:"right"});}
+  if(R.modo!=="proy"){d.setTextColor(95,106,102);T(`Anticipo ${P.anticipo}%`,tx,y);d.setTextColor(27,34,32);T(money(R.anticipo),W-M-12,y,{align:"right"});}
   y+=36;
   if(R.fasesH){const X=W-M-12;tabla("Fases del proyecto",[["Fase",M+12],["Horas",X,"right"]],R.fasesH.filter(f=>f[1]).map(f=>[f[0],hrs(f[1])]));}
   if(R.modo==="proy"){const X=W-M-12;tabla("Plan de pagos",[["Hito",M+12],["%",X-150,"right"],["Monto",X,"right"]],R.pagos.map(p=>[p[0],p[1]+"%",money(p[2])]));}
@@ -1101,18 +1108,21 @@ $("secs").addEventListener("input",e=>{
 $("secs").addEventListener("focusout",e=>{if(e.target.dataset&&e.target.dataset.f==="hasta")setTimeout(drawCfg,0);});
 
 /* guardado compartido de configuración */
-let timer=null,ultimo=null;
+let timer=null,ultimo=null,guardandoCfg=false;
+/* JSON con llaves ordenadas: la base de datos puede devolver las llaves en otro orden */
+const estable=o=>JSON.stringify(o,(k,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
 function estado(t,c){const g=$("guardado");g.textContent=t;g.className="guardado"+(c?" "+c:"");}
-function programarGuardado(){estado("Guardando…","pend");clearTimeout(timer);timer=setTimeout(guardarCfg,700);}
+function programarGuardado(){estado("Guardando…","pend");guardandoCfg=true;clearTimeout(timer);timer=setTimeout(guardarCfg,700);}
 async function guardarCfg(){
   const datos=clone(P);
   try{localStorage.setItem("sunname-cfg",JSON.stringify(datos));}catch(e){}
   if(!S.db){estado("Guardado solo en este navegador","pend");return;}
-  try{ultimo=JSON.stringify(datos);await S.db.doc("config/parametros").set(datos);estado(S.local?"Guardado en esta computadora":"Cambios guardados para todos");}
+  guardandoCfg=true;timer=null;
+  try{ultimo=estable(datos);await S.db.doc("config/parametros").set(datos);estado(S.local?"Guardado en esta computadora":"Cambios guardados para todos");}
   catch(e){
     if(e&&e.code==="invalid_argument"){editable=false;drawCfg();estado("Solo lectura: no tienes permiso para cambiar la configuración","ro");}
     else estado("No se pudo guardar. Intenta de nuevo en un momento.","pend");
-  }
+  }finally{guardandoCfg=timer!==null;}
 }
 $("reset").addEventListener("click",()=>{$("reset").hidden=true;$("reset-conf").hidden=false;});
 $("reset-no").addEventListener("click",()=>{$("reset").hidden=false;$("reset-conf").hidden=true;});
@@ -1302,7 +1312,9 @@ async function conectar(db,user,dl){
   drawCfg();calc();
   db.doc("config/parametros").onSnapshot(s=>{
     if(!s.exists||s.metadata.hasPendingWrites)return;
-    const d=s.data();if(JSON.stringify(d)===ultimo)return;
+    const d=s.data();
+    // se ignora el eco de nuestro propio guardado y cualquier respuesta atrasada mientras se edita
+    if(estable(d)===ultimo||guardandoCfg||(document.activeElement&&document.activeElement.closest("#secs")))return;
     P=merge(d);try{localStorage.setItem("sunname-cfg",JSON.stringify(P));}catch(e){}
     if(!(document.activeElement&&document.activeElement.closest("#secs")))drawCfg();
     drawDynamic();calc();renderHist();
