@@ -314,6 +314,12 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
 .notas #nota-eq-lst{max-height:min(52vh,460px)}
 .notas .filtros-n{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .notas .filtros-n select{padding:8px 10px;border:1px solid var(--linea);border-radius:10px;background:var(--fondo);font-size:14px}
+.hrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:6px 16px;padding:12px 0;border-bottom:1px solid var(--linea)}
+.hrow:last-child{border-bottom:0}
+.hrow small{display:block;color:var(--suave);font-size:12.5px;margin-top:2px}
+.hrow .cambio{font-size:14px;font-variant-numeric:tabular-nums;display:grid;gap:3px}
+.hrow .cambio .de{color:var(--suave);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--suave) 60%,transparent)}
+@media (max-width:620px){.hrow{grid-template-columns:minmax(0,1fr)}}
 .notas .pie{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--texto);color:var(--fondo);padding:10px 16px;border-radius:10px;font-size:14px;z-index:9;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
 @media (min-width:921px){.toast{bottom:24px}}
@@ -464,6 +470,11 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
         <span class="guardado" id="guardado">Cargando…</span>
       </div>
       <div class="secs" id="secs"></div>
+      <section class="sec" id="sec-hist" hidden style="margin-top:18px">
+        <h2>Historial de cambios</h2>
+        <p>Qué se cambió en esta configuración, quién y cuándo. Los cambios seguidos al mismo campo se agrupan en uno.</p>
+        <div id="hist-lst"></div>
+      </section>
       <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn linea" id="reset">Restablecer valores originales</button>
         <span id="reset-conf" hidden style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="msg">Se perderán los cambios de tarifas y reglas.</span><button class="btn peligro" id="reset-si">Sí, restablecer</button><button class="btn linea" id="reset-no">Cancelar</button></span>
@@ -920,6 +931,7 @@ function ir(vista){
   ["cot","his","cfg"].forEach(k=>{$("v-"+k).hidden=k!==vista;const b=$("nav-"+k);if(k===vista)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
   $("barra").hidden=vista!=="cot";
   if(vista==="his")renderHist();
+  if(vista==="cfg")cargarHistorial();
   window.scrollTo(0,0);
 }
 $$(".nav button").forEach(b=>b.addEventListener("click",()=>ir(b.dataset.v)));
@@ -1076,6 +1088,43 @@ const SECS=[
   {id:"com",t:"Comisiones",d:"Porcentaje de comisión según quién hizo la venta. Se calcula sobre el subtotal, sin IVA ni viáticos.",canales:true}
 ];
 let editable=true;
+/* ---------- Historial de cambios (solo administración, con Supabase) ---------- */
+const ETIQ={canales:"Comisiones por canal"},UNI={};
+SECS.forEach(sc=>{(sc.f||[]).forEach(f=>{ETIQ[f[0]]=f[1];UNI[f[0]]=f[3];});if(sc.tabla)ETIQ[sc.tabla.k]=sc.tabla.titulo;(sc.tablas||[]).forEach(t=>ETIQ[t.k]=t.titulo);(sc.tablasNP||[]).forEach(t=>ETIQ[t.k]=t.titulo);});
+function fmtHist(campo,v){
+  if(v===null||v===undefined||v==="")return "—";
+  if(typeof v==="number"){const u=UNI[campo];return u==="MXN"?money(v):u==="%"?v+"%":u==="h"?v+" h":u?v+" "+u:String(v);}
+  if(typeof v==="string")return "«"+(v.length>90?v.slice(0,90)+"…":v)+"»";
+  return JSON.stringify(v);
+}
+function difLista(campo,a,b){
+  a=Array.isArray(a)?a:[];b=Array.isArray(b)?b:[];const out=[];
+  const etq={p:campo==="odoo"?"precio":"%",c:"comisión",h:"horas",hasta:"límite",n:"nombre"};
+  for(let i=0;i<Math.max(a.length,b.length);i++){
+    const x=a[i]||{},y=b[i]||{};
+    for(const k of new Set([...Object.keys(x),...Object.keys(y)])){
+      if(JSON.stringify(x[k])===JSON.stringify(y[k]))continue;
+      const nom=y.n||x.n||(campo==="odoo"?`Paquete de ${y.h??x.h} h`:("hasta" in y||"hasta" in x)?((y.hasta??x.hasta)===null?"Último rango":`Rango hasta ${y.hasta??x.hasta}`):`Fila ${i+1}`);
+      const f=val=>val===null||val===undefined?"—":typeof val==="number"?(campo==="odoo"&&k==="p"?money(val):k==="p"||k==="c"?val+"%":k==="h"?val+" h":String(val)):String(val);
+      out.push(`<span>${esc(nom)} (${etq[k]||k}): <span class="de">${esc(f(x[k]))}</span> → <b>${esc(f(y[k]))}</b></span>`);
+    }
+  }
+  return out.length?out.join(""):"<span>Sin diferencias visibles</span>";
+}
+async function cargarHistorial(){
+  const sec=$("sec-hist");
+  if(!S.sb||!S.admin||S.sinHistorial){if(!sec.hidden){sec.hidden=true;drawCfg();}return;}
+  const {data,error}=await S.sb.from("config_historial").select("id,campo,antes,despues,cambiado_por,creado").order("creado",{ascending:false}).limit(60);
+  if(error){if(["PGRST205","42P01"].includes(error.code))S.sinHistorial=true;sec.hidden=true;return;}
+  const faltan=[...new Set((data||[]).map(h=>h.cambiado_por).filter(Boolean))].filter(i=>!(i in S.names));
+  if(faltan.length){const {data:ps}=await S.sb.from("perfiles").select("id,nombre").in("id",faltan);(ps||[]).forEach(x=>S.names[x.id]=x.nombre);}
+  const estaba=sec.hidden;sec.hidden=false;if(estaba&&!(document.activeElement&&document.activeElement.closest("#secs")))drawCfg();
+  $("hist-lst").innerHTML=(data&&data.length)?data.map(h=>{
+    const lista=Array.isArray(h.antes)||Array.isArray(h.despues);
+    const det=lista?difLista(h.campo,h.antes,h.despues):`<span><span class="de">${esc(fmtHist(h.campo,h.antes))}</span> → <b>${esc(fmtHist(h.campo,h.despues))}</b></span>`;
+    return `<div class="hrow"><div><b>${esc(ETIQ[h.campo]||h.campo)}</b><small>${esc(S.names[h.cambiado_por]||"Sin nombre")} · ${esc(fechaN(h.creado))}</small></div><div class="cambio">${det}</div></div>`;
+  }).join(""):`<p class="lead" style="font-size:14px">Todavía no hay cambios registrados.</p>`;
+}
 function prow(label,hint,input,u){return `<div class="prow"><div class="l"><b>${label}</b>${hint?`<small>${hint}</small>`:""}</div><div class="unidad">${input}${u?`<span>${u}</span>`:""}</div></div>`;}
 function tablaHTML(t){
   const arr=P[t.k];let h=`<div class="subt">${t.titulo}</div>`;
@@ -1098,7 +1147,7 @@ function campoCfg(f){
   return prow(f[1],f[2],`<input type="number" min="0" data-k="${f[0]}" value="${P[f[0]]}">`,f[3]);
 }
 function drawCfg(){
-  $("cfg-nav").innerHTML=SECS.map(s=>`<button data-go="${s.id}">${s.t}</button>`).join("");
+  $("cfg-nav").innerHTML=SECS.map(s=>`<button data-go="${s.id}">${s.t}</button>`).join("")+($("sec-hist").hidden?"":`<button data-go="hist">Historial de cambios</button>`);
   $("secs").innerHTML=SECS.map(s=>{
     let h=`<section class="sec" id="sec-${s.id}"><h2>${s.t}</h2><p>${s.d}</p>`;
     (s.f||[]).forEach(f=>h+=campoCfg(f));
@@ -1139,7 +1188,7 @@ async function guardarCfg(){
   try{localStorage.setItem("sunname-cfg",JSON.stringify(datos));}catch(e){}
   if(!S.db){estado("Guardado solo en este navegador","pend");return;}
   guardandoCfg=true;timer=null;
-  try{ultimo=estable(datos);await S.db.doc("config/parametros").set(datos);estado(S.local?"Guardado en esta computadora":"Cambios guardados para todos");}
+  try{ultimo=estable(datos);await S.db.doc("config/parametros").set(datos);estado(S.local?"Guardado en esta computadora":"Cambios guardados para todos");if(S.sb)setTimeout(cargarHistorial,600);}
   catch(e){
     if(e&&e.code==="invalid_argument"){editable=false;drawCfg();estado("Solo lectura: no tienes permiso para cambiar la configuración","ro");}
     else estado("No se pudo guardar. Intenta de nuevo en un momento.","pend");
@@ -1336,6 +1385,7 @@ async function entrar(session){
   $("usr-nombre").textContent=nom;$("usr-correo").textContent=session.user.email;$("usr-rol").textContent=perfil.rol==="admin"?"Administración":"Ventas";
   await conectar(supaDB(S.sb),supaUser(S.sb,uid,perfil),localDL);
   S.sb.channel("notas").on("postgres_changes",{event:"*",schema:"public",table:"notas"},()=>cargarNotas()).subscribe();
+  S.sb.channel("historial").on("postgres_changes",{event:"*",schema:"public",table:"config_historial"},()=>{if(!$("v-cfg").hidden)cargarHistorial();}).subscribe();
   cargarNotas();
 }
 async function iniciarSupabase(){
