@@ -1178,8 +1178,8 @@ const localDL={save:async({filename,data})=>{
 /* =================== Supabase (login y datos compartidos) ===================
    Pega aquí la URL del proyecto y la clave pública (anon / publishable).
    Vacías = el cotizador guarda en el navegador (modo local). */
-const SUPABASE_URL="";
-const SUPABASE_KEY="";
+const SUPABASE_URL="https://wemyausioojlghafwolj.supabase.co";
+const SUPABASE_KEY="sb_publishable_Lu9Yn0bp12DO178UWzqXfg_zSWF0E42";
 
 function cargarScript(src){return new Promise((ok,no)=>{const e=document.createElement("script");e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e);});}
 function supaDB(sb){
@@ -1238,7 +1238,7 @@ async function entrar(session){
 }
 async function iniciarSupabase(){
   const tipo=(location.hash.match(/type=([a-z]+)/)||[])[1];
-  try{await cargarScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js");}
+  try{await cargarScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js");}
   catch(e){verLogin("entrar","No se pudo conectar. Revisa tu internet y recarga la página.");return;}
   // bloqueo simple de sesión: el de pestañas del navegador puede quedarse esperando en algunos equipos
   const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{lock:async(n,t,fn)=>await fn()}});S.sb=sb;
