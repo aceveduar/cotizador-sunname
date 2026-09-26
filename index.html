@@ -272,6 +272,20 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .unidad span{padding:0 10px;color:var(--suave);font-size:13px;white-space:nowrap}
 .cfg input:disabled,.cfg textarea:disabled{opacity:.7;cursor:not-allowed}
 .subt{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);margin:18px 0 2px}
+.nota-btn{position:fixed;left:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:50px;padding:11px 16px;background:var(--superficie);color:var(--titulo);font-weight:600;box-shadow:var(--sombra-md);cursor:pointer;border:1px solid var(--linea)}
+.nota-btn .cnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--marca-acento);color:var(--marca-texto-acento);font-size:12px;display:inline-grid;place-items:center}
+@media (max-width:920px){.nota-btn{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+dialog.notas{width:min(560px,calc(100% - 32px));max-height:calc(100% - 48px);border:1px solid var(--linea);border-radius:20px;padding:0;background:var(--superficie);color:var(--texto);box-shadow:var(--sombra-md)}
+dialog.notas::backdrop{background:rgba(14,30,53,.45)}
+.notas .in{padding:22px;display:grid;gap:14px}
+.notas h2{font:700 20px var(--f-display);color:var(--titulo);margin:0}
+.notas .ctx{font-size:13px;color:var(--suave);background:var(--superficie-2);border-radius:10px;padding:8px 12px}
+.notas textarea{width:100%;min-height:110px;padding:11px 12px;border:1px solid var(--linea);border-radius:12px;background:var(--fondo);resize:vertical}
+.notas .lst{display:grid;gap:8px;max-height:240px;overflow:auto}
+.notas .it{border:1px solid var(--linea);border-radius:12px;padding:10px 12px;font-size:14px;display:grid;gap:4px}
+.notas .it small{color:var(--suave);font-size:12px}
+.notas .it .x{justify-self:end;border:0;background:none;color:var(--alerta);cursor:pointer;font-size:13px;font-weight:600;padding:0}
+.notas .pie{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--texto);color:var(--fondo);padding:10px 16px;border-radius:10px;font-size:14px;z-index:9;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
 @media (min-width:921px){.toast{bottom:24px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
@@ -385,7 +399,7 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
       <div><h1>Cotizaciones</h1><p class="lead">Seguimiento de lo que se ha cotizado. Cambia el estado conforme avanza cada venta.</p></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
         <button class="btn linea chico" id="b-exp"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Exportar a Excel</button>
-        <div class="seg" id="f-quien"><button aria-pressed="true" data-q="mias">Mías</button><button aria-pressed="false" data-q="todas">Todas</button></div>
+        <div class="seg" id="f-quien"><button aria-pressed="false" data-q="mias">Mías</button><button aria-pressed="true" data-q="todas">Todas</button></div>
       </div>
     </div>
     <div class="kpis" id="kpis"></div>
@@ -424,6 +438,23 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 </div>
 
 <div class="barra" id="barra"><div><small id="b-modo">Total con IVA</small><b id="b-total">$0</b></div><button class="btn" id="b-ver">Ver resumen</button></div>
+<button class="nota-btn" id="nota-abrir" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg>Dejar nota<span class="cnt" id="nota-cnt" hidden>0</span></button>
+<dialog class="notas" id="notas" aria-labelledby="notas-t">
+  <form class="in" method="dialog" id="nota-form">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 id="notas-t">Notas de prueba</h2><button class="btn linea chico" value="cerrar" formnovalidate>Cerrar</button></div>
+    <p class="lead" style="font-size:14px">Escribe lo que cambiarías o lo que no se entiende. Se guarda en este navegador; al terminar, copia tus notas y envíalas.</p>
+    <label class="campo"><span>Tu nombre</span><input class="txt" id="nota-nombre" type="text" placeholder="Ej. Angie" autocomplete="name"></label>
+    <div class="ctx" id="nota-ctx"></div>
+    <label class="campo"><span>Nota</span><textarea id="nota-txt" placeholder="Ej. En Proyecto me gustaría poder poner horas de capacitación aparte."></textarea></label>
+    <div style="display:flex;justify-content:flex-end"><button class="btn" type="button" id="nota-guardar">Guardar nota</button></div>
+    <div class="mini" id="nota-lst-t" hidden>Mis notas</div>
+    <div class="lst" id="nota-lst"></div>
+    <div class="pie" id="nota-pie" hidden>
+      <button class="btn linea chico" type="button" id="nota-copiar">Copiar todas</button>
+      <button class="btn linea chico" type="button" id="nota-bajar">Descargar .txt</button>
+    </div>
+  </form>
+</dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -458,7 +489,7 @@ let P=clone(DEF);
 try{const s=localStorage.getItem("sunname-cfg");if(s)P=merge(JSON.parse(s));}catch(e){}
 
 const S={db:null,user:null,dl:null,meId:null,admin:false,quotes:[],aprob:{},names:{},
-  currentId:null,currentFolio:"",currentDoc:null,dirty:false,showInt:false,quien:"mias",fEstado:"activas",R:null,tab:Math.random().toString(36).slice(2)};
+  currentId:null,currentFolio:"",currentDoc:null,dirty:false,showInt:false,quien:"todas",fEstado:"activas",R:null,tab:Math.random().toString(36).slice(2)};
 try{S.showInt=localStorage.getItem("sunname-int")==="1";}catch(e){}
 
 const $=id=>document.getElementById(id);
@@ -1040,6 +1071,45 @@ $("reset-si").addEventListener("click",()=>{
   const keep={empresa:P.empresa,telEmpresa:P.telEmpresa,correoEmpresa:P.correoEmpresa,web:P.web,terminos:P.terminos};
   P={...clone(DEF),...keep};$("reset").hidden=false;$("reset-conf").hidden=true;drawCfg();drawDynamic();calc();programarGuardado();
 });
+
+/* =================== Notas de prueba =================== */
+const NK="sunname-notas";
+const leerNotas=()=>{try{return JSON.parse(localStorage.getItem(NK)||"[]");}catch(e){return [];}};
+const guardarNotas=n=>{try{localStorage.setItem(NK,JSON.stringify(n));}catch(e){}};
+function contexto(){
+  const vista=!$("v-cot").hidden?"Cotizar":!$("v-his").hidden?"Cotizaciones":"Configuración";
+  const modo=S.R?S.R.titulo:"";
+  return vista+(vista==="Cotizar"&&modo?" · "+modo:"")+(vista==="Cotizar"&&S.currentFolio?" · "+S.currentFolio:"");
+}
+function pintarNotas(){
+  const n=leerNotas();
+  $("nota-cnt").hidden=!n.length;$("nota-cnt").textContent=n.length;
+  $("nota-lst-t").hidden=$("nota-pie").hidden=!n.length;
+  $("nota-lst").innerHTML=n.slice().reverse().map((x,i)=>`<div class="it"><small>${esc(x.fecha)} · ${esc(x.ctx)}</small><span>${esc(x.txt)}</span><button type="button" class="x" data-borrar="${n.length-1-i}">Borrar</button></div>`).join("");
+}
+function textoNotas(){
+  const n=leerNotas(),nom=$("nota-nombre").value.trim();
+  return `Notas de prueba · Cotizador Sunname${nom?" · "+nom:""}\n\n`+n.map((x,i)=>`${i+1}. [${x.ctx}] ${x.txt}\n   (${x.fecha})`).join("\n\n");
+}
+try{$("nota-nombre").value=localStorage.getItem("sunname-nota-nombre")||"";}catch(e){}
+$("nota-nombre").addEventListener("input",e=>{try{localStorage.setItem("sunname-nota-nombre",e.target.value);}catch(err){}});
+$("nota-abrir").addEventListener("click",()=>{$("nota-ctx").textContent="Pantalla: "+contexto();pintarNotas();$("notas").showModal();$("nota-txt").focus();});
+$("nota-guardar").addEventListener("click",()=>{
+  const t=$("nota-txt").value.trim();if(!t){$("nota-txt").focus();return;}
+  const n=leerNotas();n.push({txt:t,ctx:contexto(),fecha:new Date().toLocaleString("es-MX",{dateStyle:"medium",timeStyle:"short"})});guardarNotas(n);
+  $("nota-txt").value="";pintarNotas();toast("Nota guardada");
+});
+$("nota-lst").addEventListener("click",e=>{const b=e.target.closest("[data-borrar]");if(!b)return;const n=leerNotas();n.splice(+b.dataset.borrar,1);guardarNotas(n);pintarNotas();});
+$("nota-copiar").addEventListener("click",()=>{
+  const t=textoNotas();
+  try{navigator.clipboard.writeText(t).then(()=>toast("Notas copiadas. Pégalas en WhatsApp o en un correo."),()=>toast("No se pudo copiar. Usa «Descargar .txt»."));}catch(e){toast("No se pudo copiar. Usa «Descargar .txt».");}
+});
+$("nota-bajar").addEventListener("click",async()=>{
+  const nom=$("nota-nombre").value.trim()||"notas";
+  const dl=S.dl||localDL;
+  try{await dl.save({filename:`Notas cotizador ${nom} ${new Date().toISOString().slice(0,10)}.txt`,data:new Blob([textoNotas()],{type:"text/plain"})});}catch(e){if(!(e&&e.code==="declined"))toast("No se pudo descargar.");}
+});
+pintarNotas();
 
 calc();
 renderHist();
