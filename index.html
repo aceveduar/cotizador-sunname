@@ -272,6 +272,20 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .unidad span{padding:0 10px;color:var(--suave);font-size:13px;white-space:nowrap}
 .cfg input:disabled,.cfg textarea:disabled{opacity:.7;cursor:not-allowed}
 .subt{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--suave);margin:18px 0 2px}
+.login{position:fixed;inset:0;z-index:30;background:var(--fondo);display:grid;place-items:center;padding:24px 16px;overflow:auto}
+.login .caja{width:min(420px,100%);background:var(--superficie);border:1px solid var(--linea);border-radius:22px;padding:30px 28px;box-shadow:var(--sombra-md);display:grid;gap:16px}
+.login .caja>img{height:44px;width:auto;justify-self:start}
+.login h1{font-size:24px;margin:4px 0 0}
+.login form{display:grid;gap:14px}
+.login .err{font-size:14px;color:var(--alerta);margin:0}
+.login .ok{font-size:14px;color:var(--ok);margin:0}
+.login .link{border:0;background:none;color:var(--titulo);font-weight:600;cursor:pointer;padding:0;justify-self:start;font-size:14px}
+.login .btn{width:100%;height:48px}
+.login .pie{font-size:12.5px;color:var(--suave);text-align:center}
+.usuario{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--suave)}
+.usuario b{color:var(--texto);font-weight:600}
+.usuario .rol{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--acento-suave);color:var(--titulo);font-weight:600}
+.top-der{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .nota-btn{position:fixed;left:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:50px;padding:11px 16px;background:var(--superficie);color:var(--titulo);font-weight:600;box-shadow:var(--sombra-md);cursor:pointer;border:1px solid var(--linea)}
 .nota-btn .cnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--marca-acento);color:var(--marca-texto-acento);font-size:12px;display:inline-grid;place-items:center}
 @media (max-width:920px){.nota-btn{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
@@ -294,11 +308,14 @@ dialog.notas::backdrop{background:rgba(14,30,53,.45)}
 <div class="wrap">
   <header class="top">
     <div class="brand"><img class="logo-c" id="logo-c" alt="Sunname"><img class="logo-o" id="logo-o" alt="Sunname"><span class="sep"></span><small>Cotizador</small></div>
+    <div class="top-der">
+    <div class="usuario" id="usuario" hidden><b id="usr-nombre"></b><span class="rol" id="usr-rol"></span><button class="btn linea chico" id="salir">Salir</button></div>
     <nav class="nav" aria-label="Secciones">
       <button id="nav-cot" data-v="cot" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Cotizar</span></button>
       <button id="nav-his" data-v="his"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg><span>Cotizaciones</span><span class="badge" id="nav-badge" hidden>0</span></button>
       <button id="nav-cfg" data-v="cfg" hidden><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg><span class="lbl-l">Configuración</span></button>
     </nav>
+    </div>
   </header>
 
   <!-- ============ COTIZAR ============ -->
@@ -438,6 +455,26 @@ dialog.notas::backdrop{background:rgba(14,30,53,.45)}
 </div>
 
 <div class="barra" id="barra"><div><small id="b-modo">Total con IVA</small><b id="b-total">$0</b></div><button class="btn" id="b-ver">Ver resumen</button></div>
+<div class="login" id="login" hidden>
+  <div class="caja">
+    <img id="login-logo" alt="Sunname">
+    <div><h1 id="login-t">Inicia sesión</h1><p class="lead" id="login-sub" style="font-size:14px">Cotizador de Sunname</p></div>
+    <form id="f-entrar">
+      <label class="campo"><span>Correo</span><input class="txt" id="l-correo" type="email" autocomplete="username" required></label>
+      <label class="campo"><span>Contraseña</span><input class="txt" id="l-clave" type="password" autocomplete="current-password" required></label>
+      <p class="err" id="l-err" hidden></p><p class="ok" id="l-ok" hidden></p>
+      <button class="btn" type="submit" id="l-btn">Entrar</button>
+      <button class="link" type="button" id="l-olvide">¿Olvidaste tu contraseña?</button>
+    </form>
+    <form id="f-clave" hidden>
+      <label class="campo"><span>Nueva contraseña</span><input class="txt" id="n-clave" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label class="campo"><span>Repite la contraseña</span><input class="txt" id="n-clave2" type="password" autocomplete="new-password" minlength="8" required></label>
+      <p class="err" id="n-err" hidden></p>
+      <button class="btn" type="submit">Guardar contraseña</button>
+    </form>
+    <p class="pie">Acceso solo para el equipo de Sunname.</p>
+  </div>
+</div>
 <button class="nota-btn" id="nota-abrir" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg>Dejar nota<span class="cnt" id="nota-cnt" hidden>0</span></button>
 <dialog class="notas" id="notas" aria-labelledby="notas-t">
   <form class="in" method="dialog" id="nota-form">
@@ -713,6 +750,7 @@ function nueva(){S.currentId=null;S.currentFolio="";S.currentDoc=null;S.dirty=fa
 
 /* =================== Guardar / folio =================== */
 async function nuevoFolio(){
+  if(S.sb){const {data,error}=await S.sb.rpc("siguiente_folio");if(error)throw {code:"unavailable",message:error.message};return data;}
   const y=new Date().getFullYear(),ref=S.db.doc("meta/folio");
   for(let i=0;i<8;i++){
     const r=await ref.acquire({holder:S.tab,ttlMs:5000});
@@ -1137,13 +1175,105 @@ const localDL={save:async({filename,data})=>{
   const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
 }};
 
+/* =================== Supabase (login y datos compartidos) ===================
+   Pega aquí la URL del proyecto y la clave pública (anon / publishable).
+   Vacías = el cotizador guarda en el navegador (modo local). */
+const SUPABASE_URL="";
+const SUPABASE_KEY="";
+
+function cargarScript(src){return new Promise((ok,no)=>{const e=document.createElement("script");e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e);});}
+function supaDB(sb){
+  const subs={},avisar=t=>setTimeout(()=>(subs[t]||[]).forEach(f=>f()),0);
+  const canal=sb.channel("cotizador");
+  ["config","cotizaciones","aprobaciones"].forEach(t=>canal.on("postgres_changes",{event:"*",schema:"public",table:t},()=>avisar(t)));
+  canal.subscribe();
+  const falla=e=>{throw {code:e&&["42501","P0001"].includes(e.code)?"invalid_argument":"unavailable",message:e&&e.message};};
+  const snap=(id,row)=>({id,exists:!!row,data:()=>row?clone(row.datos):undefined,metadata:{fromCache:false,hasPendingWrites:false}});
+  function doc(path){
+    const [t,id]=path.split("/");
+    const r={id,path,
+      get:async()=>{const {data,error}=await sb.from(t).select("id,datos").eq("id",id).maybeSingle();if(error)falla(error);return snap(id,data);},
+      set:async d=>{const {error}=await sb.from(t).upsert({id,datos:d});if(error)falla(error);avisar(t);},
+      update:async d=>{
+        if(t==="cotizaciones"){const {error}=await sb.rpc("actualizar_cotizacion",{p_id:id,p_cambios:d});if(error)falla(error);avisar(t);return;}
+        const s0=await r.get();if(!s0.exists)throw {code:"invalid_argument"};await r.set({...s0.data(),...d});},
+      delete:async()=>{const {error}=await sb.from(t).delete().eq("id",id);if(error)falla(error);avisar(t);},
+      acquire:async()=>({acquired:true}),
+      onSnapshot:(n,e)=>{const f=()=>r.get().then(n,x=>e&&e(x));(subs[t]=subs[t]||[]).push(f);f();return()=>{subs[t]=subs[t].filter(x=>x!==f);};}};
+    return r;
+  }
+  function col(t,ord){
+    const q={path:t,doc:id=>doc(t+"/"+id),orderBy:(f,dir)=>col(t,[f,dir]),limit:()=>q,where:()=>q,
+      onSnapshot:(n,e)=>{
+        const f=async()=>{const {data,error}=await sb.from(t).select("id,datos");if(error){e&&e({code:"unavailable",message:error.message});return;}
+          let docs=(data||[]).map(x=>snap(x.id,x));
+          if(ord)docs.sort((a,b)=>((a.data()[ord[0]]||"")>(b.data()[ord[0]]||"")?1:-1)*(ord[1]==="desc"?-1:1));
+          n({docs,size:docs.length,empty:!docs.length,metadata:{}});};
+        (subs[t]=subs[t]||[]).push(f);f();return()=>{subs[t]=subs[t].filter(x=>x!==f);};}};
+    return q;
+  }
+  return {doc,collection:col};
+}
+function supaUser(sb,uid,perfil){
+  return {canEdit:async()=>perfil.rol==="admin",id:async()=>uid,
+    profiles:async ids=>{const {data}=await sb.from("perfiles").select("id,nombre").in("id",ids);const o={};(data||[]).forEach(p=>o[p.id]={name:p.nombre});return o;}};
+}
+
+/* pantalla de acceso */
+const verLogin=(modo,msg)=>{
+  $("login").hidden=false;$("login-logo").src=LOGO_CLARO;
+  $("f-entrar").hidden=modo!=="entrar";$("f-clave").hidden=modo!=="clave";
+  $("login-t").textContent=modo==="clave"?"Crea tu contraseña":"Inicia sesión";
+  $("login-sub").textContent=modo==="clave"?"Mínimo 8 caracteres.":modo==="cargando"?"Conectando…":"Cotizador de Sunname";
+  $("l-err").hidden=!msg;$("l-err").textContent=msg||"";$("l-ok").hidden=true;
+};
+async function entrar(session){
+  const uid=session.user.id;
+  const {data:perfil,error}=await S.sb.from("perfiles").select("nombre,rol,activo").eq("id",uid).maybeSingle();
+  if(error||!perfil||!perfil.activo){S.saliendo=true;await S.sb.auth.signOut();verLogin("entrar",error?"No se pudo conectar. Intenta de nuevo.":"Tu usuario no tiene acceso. Pide a administración que lo active.");S.saliendo=false;return;}
+  $("login").hidden=true;
+  S.names[uid]=perfil.nombre;
+  $("usuario").hidden=false;$("usr-nombre").textContent=perfil.nombre||session.user.email;$("usr-rol").textContent=perfil.rol==="admin"?"Administración":"Ventas";
+  await conectar(supaDB(S.sb),supaUser(S.sb,uid,perfil),localDL);
+}
+async function iniciarSupabase(){
+  const tipo=(location.hash.match(/type=([a-z]+)/)||[])[1];
+  try{await cargarScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js");}
+  catch(e){verLogin("entrar","No se pudo conectar. Revisa tu internet y recarga la página.");return;}
+  // bloqueo simple de sesión: el de pestañas del navegador puede quedarse esperando en algunos equipos
+  const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{lock:async(n,t,fn)=>await fn()}});S.sb=sb;
+  sb.auth.onAuthStateChange(ev=>{if(ev==="PASSWORD_RECOVERY")verLogin("clave");if(ev==="SIGNED_OUT"&&!S.saliendo)location.reload();});
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){verLogin("entrar");return;}
+  if(tipo==="invite"||tipo==="recovery"){verLogin("clave");return;}
+  await entrar(session);
+}
+$("f-entrar").addEventListener("submit",async e=>{
+  e.preventDefault();const b=$("l-btn");b.disabled=true;b.textContent="Entrando…";$("l-err").hidden=true;
+  const {data,error}=await S.sb.auth.signInWithPassword({email:$("l-correo").value.trim(),password:$("l-clave").value});
+  b.disabled=false;b.textContent="Entrar";
+  if(error){$("l-err").hidden=false;$("l-err").textContent=/confirm/i.test(error.message)?"Tu correo aún no está confirmado.":"Correo o contraseña incorrectos.";return;}
+  await entrar(data.session);
+});
+$("l-olvide").addEventListener("click",async()=>{
+  const correo=$("l-correo").value.trim();
+  if(!correo){$("l-err").hidden=false;$("l-err").textContent="Escribe tu correo y vuelve a dar clic.";$("l-correo").focus();return;}
+  const {error}=await S.sb.auth.resetPasswordForEmail(correo,{redirectTo:location.origin+location.pathname});
+  $("l-err").hidden=!error;$("l-err").textContent=error?"No se pudo enviar el correo. Intenta más tarde.":"";
+  $("l-ok").hidden=!!error;$("l-ok").textContent="Te enviamos un correo para restablecer tu contraseña.";
+});
+$("f-clave").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if($("n-clave").value!==$("n-clave2").value){$("n-err").hidden=false;$("n-err").textContent="Las contraseñas no coinciden.";return;}
+  const {error}=await S.sb.auth.updateUser({password:$("n-clave").value});
+  if(error){$("n-err").hidden=false;$("n-err").textContent="No se pudo guardar la contraseña: "+error.message;return;}
+  history.replaceState(null,"",location.pathname);
+  const {data:{session}}=await S.sb.auth.getSession();await entrar(session);toast("Contraseña guardada");
+});
+$("salir").addEventListener("click",async()=>{await S.sb.auth.signOut();});
+
 /* =================== Conexión con la plataforma =================== */
-(async()=>{
-  let enMarco=true;try{enMarco=window.top!==window.self;}catch(e){}
-  for(let n=0;enMarco&&n<20&&!(window.claude&&window.claude.use);n++)await new Promise(r=>setTimeout(r,150));
-  let db,user,dl;
-  if(!window.claude||!window.claude.use){[db,user,dl]=[localDB(),null,localDL];S.local=true;}
-  else [db,user,dl]=await Promise.all(["db","user","downloads"].map(k=>window.claude.use(k).catch(()=>null)));
+async function conectar(db,user,dl){
   S.db=db;S.user=user;S.dl=dl;
   if(user){try{S.admin=await user.canEdit();}catch(e){}try{S.meId=await user.id();}catch(e){}}
   else S.admin=true;
@@ -1165,6 +1295,13 @@ const localDL={save:async({filename,data})=>{
     renderHist();calc();
   },()=>{});
   db.collection("aprobaciones").onSnapshot(s=>{S.aprob={};s.docs.forEach(d=>S.aprob[d.id]=d.data());calc();},()=>{});
+}
+(async()=>{
+  let enMarco=true;try{enMarco=window.top!==window.self;}catch(e){}
+  for(let n=0;enMarco&&n<20&&!(window.claude&&window.claude.use);n++)await new Promise(r=>setTimeout(r,150));
+  if(window.claude&&window.claude.use){const [db,user,dl]=await Promise.all(["db","user","downloads"].map(k=>window.claude.use(k).catch(()=>null)));await conectar(db,user,dl);return;}
+  if(SUPABASE_URL&&SUPABASE_KEY){verLogin("cargando");try{await iniciarSupabase();}catch(e){verLogin("entrar","No se pudo conectar. Revisa tu internet y recarga la página.");}return;}
+  S.local=true;await conectar(localDB(),null,localDL);
 })();
 })();
 </script>
