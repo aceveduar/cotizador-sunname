@@ -88,14 +88,24 @@ function faltaCliente(){const c=$("cliente");c.classList.add("falta");c.setAttri
 $("cliente").addEventListener("input",()=>{if($("cliente").value.trim()){$("cliente").classList.remove("falta");$("cliente").removeAttribute("aria-invalid");$("cliente-err").hidden=true;}});
 function pasarApps(de,a){
   let ids=[];
-  if(de==="horas"){if(!S.horasTocado)return;AREAS.forEach(x=>{if($("a-"+x[0]).checked)ids.push(...AREA_APPS[x[0]]);});}
+  if(de==="horas"){if(!S.horasTocado)return "";AREAS.forEach(x=>{if($("a-"+x[0]).checked)ids.push(...AREA_APPS[x[0]]);});}
   else ids=Object.keys(APP).filter(id=>$(de[0]+"-app-"+id).checked);
   const pre=a[0];let n=0;
   new Set(ids).forEach(id=>{const c=$(pre+"-app-"+id);if(c&&!c.checked){c.checked=true;n++;}});
-  if(n){syncApps(pre,true);toast(`Se agregaron ${n} aplicaci${n>1?"ones":"ón"} de lo que elegiste en ${de==="horas"?"Paquete de horas":de==="proy"?"Proyecto":"Análisis GAP"}`);}
+  if(n){syncApps(pre,true);return `Se agregaron ${n} aplicaci${n>1?"ones":"ón"} de lo que elegiste en ${de==="horas"?"Paquete de horas":de==="proy"?"Proyecto":"Análisis GAP"}.`;}
+  return "";
 }
 // "input" llega antes que el recálculo general, que es el que actualiza S.modoAct
-$$("input[name=modo]").forEach(r=>r.addEventListener("input",()=>{if(r.checked&&r.value!=="horas"&&S.modoAct&&S.modoAct!==r.value)pasarApps(S.modoAct,r.value);}));
+$$("input[name=modo]").forEach(r=>r.addEventListener("input",()=>{
+  if(!r.checked)return;const avisos=[];
+  // un folio es una sola cotización: si una ya guardada cambia de modalidad, se guarda como nueva
+  if(S.currentId&&S.currentDoc&&S.currentDoc.modo&&S.currentDoc.modo!==r.value){
+    avisos.push(`Cambiaste la modalidad: al guardar se creará una cotización nueva con su propio folio; ${S.currentFolio} no se modifica.`);
+    S.currentId=null;S.currentFolio="";S.currentDoc=null;S.dirty=false;
+  }
+  if(r.value!=="horas"&&S.modoAct&&S.modoAct!==r.value)avisos.push(pasarApps(S.modoAct,r.value));
+  const t=avisos.filter(Boolean).join(" ");if(t)toast(t);
+}));
 $("areas").addEventListener("change",()=>{S.horasTocado=true;});
 $("v-cot").addEventListener("input",cambio);
 $("v-cot").addEventListener("change",e=>{if(e.target.type==="radio"||e.target.type==="checkbox")cambio();});
@@ -146,8 +156,10 @@ function calc(){
   st.className="estado"+(f?" "+f[0]:"");st.textContent=f?f[1]:"Lista para enviar";
   const filas=[];
   {const n=modo==="horas"?new Set(apps.flatMap(c=>c[1])).size:apps.reduce((a,c)=>a+c[1].length,0);if(n||modo!=="horas")filas.push(["Aplicaciones de Odoo",String(n),"d"]);}
-  if(dAmt)filas.push(["Precio de lista",money(sub),"d"],["Descuento "+descPct+"%","−"+money(dAmt),"d"]);
-  filas.push(["Subtotal",money(subD)]);if(viat)filas.push(["Viáticos",money(viat)]);
+  if(dAmt||viat)filas.push(["Servicios",money(sub),dAmt?"d":""]);
+  if(dAmt)filas.push(["Descuento "+descPct+"%","−"+money(dAmt),"d"]);
+  if(viat)filas.push(["Viáticos",money(viat)]);
+  filas.push(["Subtotal",money(subD+viat)]);
   filas.push(["IVA "+P.iva+"%",money(iva)],["Total",money(total),"t"]);
   if(modo!=="proy")filas.push(["Anticipo "+P.anticipo+"%",money(anticipo),"d"]);
   else if(pagos.length)filas.push(["Primer pago "+pagos[0][1]+"%",money(pagos[0][2]),"d"]);   // el plan completo está en Desglose
@@ -190,7 +202,7 @@ ${detalle}
 
 ${apps.length?"Aplicaciones de Odoo (funcionalidad estándar; adecuaciones e integraciones se cotizan aparte):\n"+apps.map(a=>`  - ${a[0]}: ${a[1].join(", ")}`).join("\n")+"\n\n":""}Horas estimadas: ${hrs(horas)}
 Duración estimada: ${dur||"—"}
-Inversión: ${money(subD)} + IVA${viat?" + viáticos ("+money(viat)+")":""} = ${money(total)} MXN${dAmt?" (incluye descuento de "+money(dAmt)+")":""}
+Inversión: ${money(subD)}${viat?" en servicios + "+money(viat)+" de viáticos":""} + IVA = ${money(total)} MXN${dAmt?" (incluye descuento de "+money(dAmt)+")":""}
 ${pagosTxt}
 ${lic?`Referencia de licencias Odoo ${lic.plan}: ${money(lic.mes)} al mes por ${lic.u} usuarios (no incluidas en esta cotización).\n`:""}Vigencia: ${P.vigencia} días.
 
@@ -278,8 +290,9 @@ async function hacerPDF(R){
   y=132;d.setTextColor(110,118,115);d.setFontSize(9);const RX=W-M-190;T("CLIENTE",M,y);T("VIGENCIA",RX,y);
   d.setTextColor(27,34,32);d.setFont("helvetica","bold");d.setFontSize(14);T(R.cliente||"-",M,y+18);
   d.setFont("helvetica","normal");d.setFontSize(10);T(P.vigencia+" días",RX,y+18);
-  const cont=[$("contacto").value,$("correo").value,$("telefono").value].filter(Boolean).join("  ·  ");
-  if(cont){d.setFontSize(10);d.setTextColor(90,98,95);T(cont,M,y+34);}
+  // contacto, correo y teléfono, cada uno en su renglón y dentro de su columna (no se enciman con la duración)
+  const cont=[$("contacto").value,$("correo").value,$("telefono").value].map(x=>x.trim()).filter(Boolean);
+  if(cont.length){d.setFontSize(10);d.setTextColor(90,98,95);d.text(cont.flatMap(x=>d.splitTextToSize(pdfTxt(x),RX-M-24)).slice(0,3),M,y+34,{lineHeightFactor:1.3});}
   d.setTextColor(110,118,115);d.setFontSize(9);T("DURACIÓN ESTIMADA",RX,y+40);d.setTextColor(27,34,32);d.setFontSize(10);d.text(d.splitTextToSize(pdfTxt(R.dur||"-"),190),RX,y+56,{lineHeightFactor:1.35});
   // título y descripción
   y=236;d.setDrawColor(221,225,220);d.line(M,y-14,W-M,y-14);
@@ -293,37 +306,38 @@ async function hacerPDF(R){
     const LW=150;
     R.apps.forEach(a=>{const l=d.splitTextToSize(pdfTxt(a[1].join(", ")),W-2*M-LW);ensure(l.length*13.3+6);
       d.setFont("helvetica","bold");d.setFontSize(10);d.setTextColor(27,34,32);T(a[0],M,y);
-      d.setFont("helvetica","normal");d.setTextColor(60,68,65);d.text(l,M+LW,y,{lineHeightFactor:1.35});y+=l.length*13.3+6;});
-    d.setFontSize(9);d.setTextColor(110,118,115);const nt=d.splitTextToSize(pdfTxt(NOTA_APPS),W-2*M);ensure(nt.length*12+4);d.text(nt,M,y+4,{lineHeightFactor:1.35});y+=nt.length*12.2+22;
+      d.setFont("helvetica","normal");d.setTextColor(60,68,65);d.text(l,M+LW,y,{lineHeightFactor:1.35});y+=l.length*13.3+3;});
+    d.setFontSize(9);d.setTextColor(110,118,115);const nt=d.splitTextToSize(pdfTxt(NOTA_APPS),W-2*M);ensure(nt.length*12+4);d.text(nt,M,y+4,{lineHeightFactor:1.35});y+=nt.length*12.2+16;
   }
   // tabla de conceptos
   d.setFillColor(240,244,248);d.rect(M,y,W-2*M,26,"F");
   d.setTextColor(95,106,102);d.setFont("helvetica","bold");d.setFontSize(9);T("CONCEPTO",M+12,y+17);T("IMPORTE",W-M-12,y+17,{align:"right"});
   y+=26;d.setFont("helvetica","normal");d.setFontSize(10.5);d.setTextColor(27,34,32);
   const filas=[...R.conceptos];if(R.viat)filas.push(["Viáticos estimados",R.viat]);
-  filas.forEach(c=>{const l=d.splitTextToSize(pdfTxt(c[0]),W-2*M-140);ensure(l.length*14+18);d.text(l,M+12,y+20);T(money(c[1]),W-M-12,y+20,{align:"right"});y+=Math.max(32,l.length*14+18);d.setDrawColor(221,225,220);d.line(M,y,W-M,y);});
+  filas.forEach(c=>{const l=d.splitTextToSize(pdfTxt(c[0]),W-2*M-140);ensure(l.length*14+18);d.text(l,M+12,y+18);T(money(c[1]),W-M-12,y+18,{align:"right"});y+=Math.max(28,l.length*14+14);d.setDrawColor(221,225,220);d.line(M,y,W-M,y);});
   // totales
-  y+=18;ensure(140);const tx=W-M-230;
-  const tot=[["Subtotal",money(R.sub+R.viat)]];
+  y+=16;ensure(130);const tx=W-M-230;
+  const tot=[];
   if(R.dAmt)tot.push([`Descuento ${R.descPct}%`,"-"+money(R.dAmt)]);
-  tot.push([`IVA ${P.iva}%`,money(R.iva)]);
-  tot.forEach(t=>{d.setTextColor(95,106,102);T(t[0],tx,y);d.setTextColor(27,34,32);T(t[1],W-M-12,y,{align:"right"});y+=18;});
+  tot.push(["Subtotal",money(R.subD+R.viat)],[`IVA ${P.iva}%`,money(R.iva)]);
+  tot.forEach(t=>{d.setTextColor(95,106,102);T(t[0],tx,y);d.setTextColor(27,34,32);T(t[1],W-M-12,y,{align:"right"});y+=17;});
   y+=4;d.setFillColor(...pri);d.roundedRect(tx-12,y-4,W-M-tx+12,34,17,17,"F");
   const tc=[255,255,255];
   d.setTextColor(...tc);d.setFont("helvetica","bold");d.setFontSize(12);T("Total MXN",tx,y+17);T(money(R.total),W-M-12,y+17,{align:"right"});
-  y+=46;d.setFont("helvetica","normal");d.setFontSize(10);
+  y+=44;d.setFont("helvetica","normal");d.setFontSize(10);
   if(R.modo!=="proy"){d.setTextColor(95,106,102);T(`Anticipo ${P.anticipo}%`,tx,y);d.setTextColor(27,34,32);T(money(R.anticipo),W-M-12,y,{align:"right"});}
-  y+=36;
+  y+=R.modo==="proy"?36:22;
   if(R.fasesH){const X=W-M-12;tabla("Fases del proyecto",[["Fase",M+12],["Horas",X,"right"]],R.fasesH.filter(f=>f[1]).map(f=>[f[0],hrs(f[1])]));}
   if(R.modo==="proy"){const X=W-M-12;tabla("Plan de pagos",[["Hito",M+12],["%",X-150,"right"],["Monto",X,"right"]],R.pagos.map(p=>[p[0],p[1]+"%",money(p[2])]));}
-  y-=36;
-  // condiciones
-  y+=36;ensure(120);
+  // condiciones: se mide el bloque completo y solo pasa a otra hoja si de verdad no cabe
+  d.setFont("helvetica","normal");d.setFontSize(9.5);
+  const cond=[R.modo==="proy"?"Forma de pago: según el plan de pagos por hito.":`Forma de pago: ${P.pago}.`,`Horas estimadas: ${hrs(R.horas)}. Vigencia de la cotización: ${P.vigencia} días.`,
+    R.lic?`Referencia de licencias Odoo ${R.lic.plan}: ${money(R.lic.mes)} al mes por ${R.lic.u} usuarios. Las licencias se contratan directamente con Odoo y no están incluidas en esta cotización.`:"",P.terminos].filter(Boolean);
+  const partes=cond.map(c=>d.splitTextToSize(pdfTxt(c),W-2*M)),alto=18+partes.reduce((a,l)=>a+l.length*13.3+5,0);
+  if(y+alto>H-54){d.addPage();y=60;}
   d.setTextColor(...pri);d.setFont("helvetica","bold");d.setFontSize(11);T("Condiciones",M,y);y+=18;
   d.setFont("helvetica","normal");d.setFontSize(9.5);d.setTextColor(60,68,65);
-  const cond=[R.modo==="proy"?"Forma de pago: según el plan de pagos por hito.":`Forma de pago: ${P.pago}.`,`Horas estimadas: ${hrs(R.horas)}. Duración estimada: ${R.dur}.`,`Vigencia de la cotización: ${P.vigencia} días.`,
-    R.lic?`Referencia de licencias Odoo ${R.lic.plan}: ${money(R.lic.mes)} al mes por ${R.lic.u} usuarios. Las licencias se contratan directamente con Odoo y no están incluidas en esta cotización.`:"",P.terminos].filter(Boolean);
-  cond.forEach(c=>{const l=d.splitTextToSize(pdfTxt(c),W-2*M);if(y+l.length*13>H-60){d.addPage();y=60;}d.text(l,M,y,{lineHeightFactor:1.4});y+=l.length*13.3+6;});
+  partes.forEach(l=>{if(y+l.length*13>H-54){d.addPage();y=60;}d.text(l,M,y,{lineHeightFactor:1.4});y+=l.length*13.3+5;});
   // pie
   const pie=[P.empresa,P.telEmpresa,P.correoEmpresa,P.web].filter(Boolean).join("   ·   ");
   const n=d.getNumberOfPages();
@@ -390,7 +404,7 @@ function renderHist(){
   const gan=base.filter(q=>q.estado==="ganada"),per=base.filter(q=>q.estado==="perdida");
   const sum=a=>a.reduce((s,q)=>s+(q.subtotal||0),0),nc=n=>n+(n===1?" cotización":" cotizaciones");
   const tasa=gan.length+per.length?Math.round(gan.length*100/(gan.length+per.length)):null;
-  $("kpis").innerHTML=[["En proceso",money(sum(act)),nc(act.length)+" · sin IVA"],["Ganadas",money(sum(gan)),nc(gan.length)+" · sin IVA"],["Tasa de cierre",tasa===null?"—":tasa+"%","ganadas contra perdidas"],["Cotizado total",money(sum(base)),nc(base.length)+" · sin IVA"]]
+  $("kpis").innerHTML=[["En proceso",money(sum(act)),nc(act.length)+" · servicios sin IVA"],["Ganadas",money(sum(gan)),nc(gan.length)+" · servicios sin IVA"],["Tasa de cierre",tasa===null?"—":tasa+"%","ganadas contra perdidas"],["Cotizado total",money(sum(base)),nc(base.length)+" · servicios sin IVA"]]
     .map(k=>`<div class="kpi"><small>${k[0]}</small><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
   // cola de autorización
   const cola=S.quotes.filter(q=>q.estado==="por_autorizar");
@@ -408,7 +422,7 @@ function renderHist(){
   const lst=base.filter(q=>(S.fEstado==="todas"||(S.fEstado==="activas"?act.includes(q):q.estado===S.fEstado))&&(!qtxt||(q.cliente||"").toLowerCase().includes(qtxt)||(q.folio||"").toLowerCase().includes(qtxt)));
   S.lista=lst;
   if(!lst.length){$("lista").innerHTML=`<div class="vacio">${S.quotes.length?"No hay cotizaciones con estos filtros.":`Aún no hay cotizaciones guardadas. Las que guardes o descargues en PDF aparecerán aquí.<br><button class="btn chico" style="margin-top:14px" data-ir-cot>Crear primera cotización</button>`}</div>`;}
-  else $("lista").innerHTML=`<div class="q h"><span>Folio</span><span>Cliente</span><span>Vendedor</span><span style="text-align:right">Subtotal<small class="sub-h">sin IVA</small></span><span>Estado</span><span></span></div>`+
+  else $("lista").innerHTML=`<div class="q h"><span>Folio</span><span>Cliente</span><span>Vendedor</span><span style="text-align:right">Servicios<small class="sub-h">sin IVA</small></span><span>Estado</span><span></span></div>`+
     lst.slice(0,S.verN).map(q=>{const t=seguimiento(q);return `<div class="q"><span class="fo">${esc(q.folio)}<br><small style="color:var(--suave);font-weight:400">${fecha(q.creado)}</small></span>
       <span class="cl"><b>${esc(q.cliente)}</b><small>${esc(q.titulo)} · ${hrs(q.horas||0)}${+q.descPct?" · "+(+q.descPct)+"% desc.":""}${q.origenGap?" · de "+esc(q.origenGap):""}</small>${t?`<span class="tag ${t[0]}">${t[1]}</span>`:""}</span>
       <span class="vd" data-uid="${esc(q.creadoPor||"")}"></span>
@@ -493,7 +507,7 @@ $("b-exp").addEventListener("click",async()=>{
   const lst=S.lista||[];if(!lst.length){toast("No hay cotizaciones para exportar con estos filtros");return;}
   const ins=await inputsDe(lst);
   const filas=lst.map(q=>{const r={Folio:q.folio,Fecha:(q.creado||"").slice(0,10),Cliente:q.cliente,Modalidad:q.titulo,Aplicaciones:appsTexto(ins[q.id]||{}),Vendedor:S.names[q.creadoPor]||"",Horas:q.horas||0,
-    "Descuento %":q.descPct||0,"Subtotal sin IVA":q.subtotal||0,"Total con IVA":q.total||0,Estado:EST[q.estado]||q.estado,"Motivo de pérdida":q.motivo||"","Origen GAP":q.origenGap||""};
+    "Descuento %":q.descPct||0,"Servicios sin IVA":q.subtotal||0,"Total con IVA":q.total||0,Estado:EST[q.estado]||q.estado,"Motivo de pérdida":q.motivo||"","Origen GAP":q.origenGap||""};
     if(S.admin)r["Comisión"]=q.comision||0;return r;});
   const ws=XLSX.utils.json_to_sheet(filas);ws["!cols"]=Object.keys(filas[0]).map(k=>({wch:Math.max(10,k.length+2,...filas.map(f=>String(f[k]).length+1))}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Cotizaciones");
