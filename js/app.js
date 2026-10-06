@@ -46,7 +46,7 @@ function stepper(id,label,val,step=1,hint="",dinero=false){
 $("areas").innerHTML=AREAS.map(a=>`<label class="chip"><input type="checkbox" id="a-${a[0]}" ${a[3]?"checked":""}><span class="dot"></span><span>${a[1]}${a[2]>1?" <small>cuenta doble</small>":""}<span class="apps">${a[4].join(", ")}</span></span></label>`).join("");
 $("p-alc").innerHTML=stepper("p-usr","Usuarios",25)+stepper("p-areas","Áreas o departamentos",5)+stepper("p-emp","Empresas",1)+stepper("p-cons","Consultores asignados",2);
 $("p-vis").innerHTML=stepper("p-nvis","Número de visitas",4)+stepper("p-hvis","Horas por visita",8)+stepper("p-vvis","Viáticos por visita",3000,500,"",true);
-$("p-ext").innerHTML=stepper("p-dev","Horas de desarrollo",40,5,"Validadas por el área técnica")+stepper("p-pm","Meses de soporte",3,1,"Después de salir a producción")+stepper("p-pmh","Horas por mes",10);
+$("p-ext").innerHTML=stepper("p-dev","Horas de desarrollo",0,5,"Validadas por el área técnica")+stepper("p-pm","Meses de soporte",3,1,"Después de salir a producción")+stepper("p-pmh","Horas por mes",10);
 $("g-alc").innerHTML=stepper("g-usr","Usuarios",60)+stepper("g-emp","Empresas",2)+stepper("g-areas","Áreas a analizar",8)+stepper("g-suc","Sucursales o plantas",3);
 $("g-viat-w").innerHTML=stepper("g-viat","Viáticos estimados",10000,1000,"",true);
 const appsHTML=pre=>APPS.map(([cat,l],i)=>`<details class="apps-cat" data-cat="${pre}-${i}"><summary>${cat}<span class="cnt" hidden></span></summary><div class="chips compact">${l.map(a=>`<label class="chip"><input type="checkbox" id="${pre}-app-${a[0]}" ${a[2]?"checked":""}><span class="dot"></span>${a[1]}</label>`).join("")}</div></details>`).join("");
@@ -64,6 +64,7 @@ function syncApps(pre,abrir){
 }
 syncApps("p",true);syncApps("g",true);
 ["h-emp","p-areas","p-emp","p-cons","g-emp","g-areas"].forEach(id=>$(id).setAttribute("min","1"));
+["p-areas","g-areas"].forEach(id=>$(id).closest(".campo").insertAdjacentHTML("beforeend",`<small id="${id}-hint" aria-live="polite"></small>`));
 const FRESH=snapshot();
 
 function drawDynamic(){
@@ -126,6 +127,11 @@ function calc(){
     syncApps("p");
     const gf=$("p-gapfolio").value;$("p-gap-w").hidden=!gf;
     if(gf){$("p-gap-lbl").textContent=gf;$("p-gap-hint").textContent=`Se acredita el ${P.gapCredito}% de ${money(v("p-gapmonto"))} pagados por el análisis`;}
+  }
+  // cuántas áreas de negocio tienen aplicaciones elegidas (Productividad es transversal y no cuenta)
+  if(modo!=="horas"){
+    const id=modo==="proy"?"p-areas":"g-areas",h=$(id+"-hint"),n=apps.filter(c=>c[0]!=="Productividad").length,dif=n>0&&n!==Math.max(1,v(id));
+    h.textContent=n?`Elegiste aplicaciones de ${n} área${n>1?"s":""}`+(dif?"; revisa este número":""):"";h.classList.toggle("aviso",dif);
   }
   if(modo==="gap"){syncApps("g");$("g-viat-w").hidden=!$("g-visita").checked;}
   const da=$("desc-aviso");da.hidden=!R.descAviso;
