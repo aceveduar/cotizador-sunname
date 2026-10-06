@@ -150,6 +150,7 @@ function calc(){
   filas.push(["Subtotal",money(subD)]);if(viat)filas.push(["Viáticos",money(viat)]);
   filas.push(["IVA "+P.iva+"%",money(iva)],["Total",money(total),"t"]);
   if(modo!=="proy")filas.push(["Anticipo "+P.anticipo+"%",money(anticipo),"d"]);
+  else if(pagos.length)filas.push(["Primer pago "+pagos[0][1]+"%",money(pagos[0][2]),"d"]);   // el plan completo está en Desglose
   const row=r=>`<div class="fila ${r[2]||""}"><span>${esc(r[0])}</span><span>${r[1]}</span></div>`;
   $("r-filas").innerHTML=filas.map(row).join("");
   $("r-desglose").innerHTML=desg.map(row).join("");
