@@ -1,0 +1,8 @@
+{
+  "name": "cotizador-sunname",
+  "private": true,
+  "description": "Cotizador de implementaciones Odoo de Sunname",
+  "scripts": {
+    "test": "node --test pruebas/calculos.test.js"
+  }
+}
