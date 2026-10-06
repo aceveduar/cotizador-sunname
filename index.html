@@ -595,6 +595,8 @@ const APP=Object.fromEntries(APPS.flatMap(c=>c[1]).map(a=>[a[0],a[1]]));
 const NOTA_APPS="Las aplicaciones se implementan en su funcionalidad estándar. Cualquier adecuación de funcionamiento o integración se cotiza por separado.";
 /* Áreas del paquete de horas: [id, nombre, peso, marcada por defecto, aplicaciones que incluye (mismos textos que Odoo)] */
 const AREAS=[["ventas","Ventas y CRM",1,1,["Ventas","Facturación","Suscripciones","Alquiler","CRM"]],["fin","Finanzas",1,1,["Gastos","consolidación de estados financieros"]],["log","Compras e inventario",1,1,["Aprovisionamiento","Inventario"]],["web","Sitio web",1,0,["Sitio web","Comercio electrónico","Foro"]],["rh","Recursos humanos",1,0,["Reclutamiento","Vacaciones","Evaluaciones","Gastos"]],["pos","Punto de venta",1,0,["Tienda","Restaurantes"]],["serv","Servicios",1,0,["Proyecto","Hojas de horas","Soporte al cliente","Planeación"]],["mrp","Manufactura",2,0,["MRP","PLM","Calidad","Mantenimiento"]]];
+/* aplicaciones del catálogo que corresponden a cada área de Horas (para llevarlas a Proyecto o GAP) */
+const AREA_APPS={ventas:["ventas","fact","subs","renta","crm"],fin:["gastos","consol"],log:["compras","inv"],web:["web","ecom","foro"],rh:["recl","ausencias","eval","gastos"],pos:["pdv","pdvrest"],serv:["proyecto","hojas","helpdesk","planea"],mrp:["mrp","plm","calidad","mant"]};
 const ESTADOS=[["borrador","Borrador"],["por_autorizar","Por autorizar"],["autorizada","Autorizada"],["enviada","Enviada"],["ganada","Ganada"],["perdida","Perdida"]];
 const EST=Object.fromEntries(ESTADOS);
 
@@ -680,6 +682,16 @@ document.addEventListener("click",e=>{
   inp.value=inp.hasAttribute("data-money")?fmtN(n):n;cambio();
 });
 function cambio(){if(S.currentId)S.dirty=true;calc();}
+function pasarApps(de,a){
+  let ids=[];
+  if(de==="horas"){if(!S.horasTocado)return;AREAS.forEach(x=>{if($("a-"+x[0]).checked)ids.push(...AREA_APPS[x[0]]);});}
+  else ids=Object.keys(APP).filter(id=>$(de[0]+"-app-"+id).checked);
+  const pre=a[0];let n=0;
+  new Set(ids).forEach(id=>{const c=$(pre+"-app-"+id);if(c&&!c.checked){c.checked=true;n++;}});
+  if(n){syncApps(pre,true);toast(`Se agregaron ${n} aplicaci${n>1?"ones":"ón"} de lo que elegiste en ${de==="horas"?"Paquete de horas":de==="proy"?"Proyecto":"Análisis GAP"}`);}
+}
+$$("input[name=modo]").forEach(r=>r.addEventListener("change",()=>{if(r.checked&&r.value!=="horas"&&S.modoAct&&S.modoAct!==r.value)pasarApps(S.modoAct,r.value);}));
+$("areas").addEventListener("change",()=>{S.horasTocado=true;});
 $("v-cot").addEventListener("input",cambio);
 $("v-cot").addEventListener("change",e=>{if(e.target.type==="radio"||e.target.type==="checkbox")cambio();});
 
@@ -691,11 +703,12 @@ function restore(o){
   }
   $("mas-cliente").open=!!(o.contacto||o.correo||o.telefono);
   syncApps("p",true);syncApps("g",true);
+  S.horasTocado=o!==FRESH&&o["r:modo"]==="horas";
 }
 
 /* =================== Cálculo =================== */
 function calc(){
-  const modo=document.querySelector("input[name=modo]:checked").value;
+  const modo=document.querySelector("input[name=modo]:checked").value;S.modoAct=modo;
   $$("[data-pane]").forEach(p=>p.hidden=p.dataset.pane!==modo);
   $$(".modo").forEach(l=>l.classList.toggle("on",l.querySelector("input").checked));
   const canal=P.canales.find(c=>c.id===(document.querySelector("input[name=canal]:checked")||{}).value)||P.canales[0];
