@@ -699,7 +699,7 @@ $("v-cot").addEventListener("change",e=>{if(e.target.type==="radio"||e.target.ty
 function snapshot(){const o={};$$("#v-cot input").forEach(i=>{if(i.type==="radio"){if(i.checked)o["r:"+i.name]=i.value;}else if(i.type==="checkbox")o[i.id]=i.checked;else if(i.id)o[i.id]=i.value;});return o;}
 function restore(o){
   for(const k in o){
-    if(k.startsWith("r:")){const r=document.querySelector(`input[name="${k.slice(2)}"][value="${o[k]}"]`);if(r)r.checked=true;}
+    if(k.startsWith("r:")){const r=document.querySelector(`input[name="${CSS.escape(k.slice(2))}"][value="${CSS.escape(String(o[k]))}"]`);if(r)r.checked=true;}
     else{const i=$(k);if(!i)continue;if(i.type==="checkbox")i.checked=!!o[k];else i.value=o[k];}
   }
   $("mas-cliente").open=!!(o.contacto||o.correo||o.telefono);
@@ -1053,7 +1053,7 @@ function renderHist(){
   $("nav-badge").hidden=!(S.admin&&cola.length);$("nav-badge").textContent=cola.length;
   if(S.admin&&cola.length){
     $("cola").hidden=false;
-    $("cola").innerHTML=`<h2>Descuentos por autorizar</h2>`+cola.map(q=>`<div class="it"><div><b>${esc(q.cliente)}</b> · <span class="num">${esc(q.folio)}</span><br><small style="color:var(--suave)">Descuento de ${q.descPct}% (máximo ${P.descMax}%) · ${money(q.total)} con IVA · <span data-uid="${esc(q.creadoPor||"")}"></span></small></div><div style="display:flex;gap:8px"><button class="btn chico" data-apr="${esc(q.id)}">Autorizar</button><button class="btn linea chico" data-rech="${esc(q.id)}">Rechazar</button></div></div>`).join("");
+    $("cola").innerHTML=`<h2>Descuentos por autorizar</h2>`+cola.map(q=>`<div class="it"><div><b>${esc(q.cliente)}</b> · <span class="num">${esc(q.folio)}</span><br><small style="color:var(--suave)">Descuento de ${+q.descPct||0}% (máximo ${P.descMax}%) · ${money(q.total)} con IVA · <span data-uid="${esc(q.creadoPor||"")}"></span></small></div><div style="display:flex;gap:8px"><button class="btn chico" data-apr="${esc(q.id)}">Autorizar</button><button class="btn linea chico" data-rech="${esc(q.id)}">Rechazar</button></div></div>`).join("");
   }else $("cola").hidden=true;
   // seguimiento
   const seg=base.map(q=>[q,seguimiento(q)]).filter(x=>x[1]);
@@ -1066,10 +1066,10 @@ function renderHist(){
   if(!lst.length){$("lista").innerHTML=`<div class="vacio">${S.quotes.length?"No hay cotizaciones con estos filtros.":`Aún no hay cotizaciones guardadas. Las que guardes o descargues en PDF aparecerán aquí.<br><button class="btn chico" style="margin-top:14px" data-ir-cot>Crear primera cotización</button>`}</div>`;}
   else $("lista").innerHTML=`<div class="q h"><span>Folio</span><span>Cliente</span><span>Vendedor</span><span style="text-align:right">Subtotal</span><span>Estado</span><span></span></div>`+
     lst.map(q=>{const t=seguimiento(q);return `<div class="q"><span class="fo">${esc(q.folio)}<br><small style="color:var(--suave);font-weight:400">${fecha(q.creado)}</small></span>
-      <span class="cl"><b>${esc(q.cliente)}</b><small>${esc(q.titulo)} · ${hrs(q.horas||0)}${q.descPct?" · "+q.descPct+"% desc.":""}${q.origenGap?" · de "+esc(q.origenGap):""}</small>${t?`<span class="tag ${t[0]}">${t[1]}</span>`:""}</span>
+      <span class="cl"><b>${esc(q.cliente)}</b><small>${esc(q.titulo)} · ${hrs(q.horas||0)}${+q.descPct?" · "+(+q.descPct)+"% desc.":""}${q.origenGap?" · de "+esc(q.origenGap):""}</small>${t?`<span class="tag ${t[0]}">${t[1]}</span>`:""}</span>
       <span class="vd" data-uid="${esc(q.creadoPor||"")}"></span>
       <span class="mt">${money(q.subtotal||0)}</span>
-      <span class="es"><select class="sel" data-est="${esc(q.id)}" data-e="${q.estado}" aria-label="Estado de ${esc(q.folio)}" ${q.estado==="por_autorizar"&&!S.admin?"disabled":""}>${ESTADOS.filter(e=>e[0]!=="por_autorizar"||q.estado==="por_autorizar").filter(e=>e[0]!=="autorizada"||q.estado==="autorizada").map(e=>`<option value="${e[0]}" ${e[0]===q.estado?"selected":""}>${e[1]}</option>`).join("")}</select>
+      <span class="es"><select class="sel" data-est="${esc(q.id)}" data-e="${esc(q.estado)}" aria-label="Estado de ${esc(q.folio)}" ${q.estado==="por_autorizar"&&!S.admin?"disabled":""}>${ESTADOS.filter(e=>e[0]!=="por_autorizar"||q.estado==="por_autorizar").filter(e=>e[0]!=="autorizada"||q.estado==="autorizada").map(e=>`<option value="${e[0]}" ${e[0]===q.estado?"selected":""}>${e[1]}</option>`).join("")}</select>
         ${q.estado==="perdida"?`<select class="sel" data-motivo="${esc(q.id)}" aria-label="Motivo de pérdida"><option value="">¿Por qué se perdió?</option>${MOTIVOS.map(m=>`<option ${m===q.motivo?"selected":""}>${m}</option>`).join("")}</select>`:""}
         ${q.modo==="gap"&&q.estado==="ganada"?`<button class="btn chico" data-g2p="${esc(q.id)}">Pasar a proyecto</button>`:""}</span>
       <span class="acc"><button class="btn linea chico" data-abrir="${esc(q.id)}">Abrir</button><button class="btn linea chico" data-dup="${esc(q.id)}">Duplicar</button></span></div>`;}).join("");
