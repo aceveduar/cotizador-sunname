@@ -94,3 +94,11 @@ test("Aplicaciones para el Excel del historial", () => {
     "Ventas: CRM | Productividad: Conversaciones, Calendario, Limpieza de datos, Tableros");
   assert.equal(appsTexto({}), ""); // cotización sin datos: vacío
 });
+
+test("Áreas con aplicaciones: cuentan igual que las áreas de Horas", () => {
+  const ids = ["crm", "ventas", "pdv", "fact", "gastos", "inv", "compras", "mrp", "calidad", "conv", "tableros"];
+  const e = con({ "r:modo": "proy", ...Object.fromEntries(ids.map((i) => ["p-app-" + i, true])) });
+  assert.deepEqual(cotizar(e, P, { admin: true }).areasApps,
+    ["Ventas y CRM", "Finanzas", "Compras e inventario", "Punto de venta", "Manufactura"]);
+  assert.deepEqual(cotizar(con({ "r:modo": "gap" }), P, { admin: true }).areasApps, []); // solo Productividad: no cuenta
+});

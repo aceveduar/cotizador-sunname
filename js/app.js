@@ -130,8 +130,8 @@ function calc(){
   }
   // cuántas áreas de negocio tienen aplicaciones elegidas (Productividad es transversal y no cuenta)
   if(modo!=="horas"){
-    const id=modo==="proy"?"p-areas":"g-areas",h=$(id+"-hint"),n=apps.filter(c=>c[0]!=="Productividad").length,dif=n>0&&n!==Math.max(1,v(id));
-    h.textContent=n?`Elegiste aplicaciones de ${n} área${n>1?"s":""}`+(dif?"; revisa este número":""):"";h.classList.toggle("aviso",dif);
+    const id=modo==="proy"?"p-areas":"g-areas",h=$(id+"-hint"),n=R.areasApps.length,dif=n>0&&n!==Math.max(1,v(id));
+    h.textContent=n?`Elegiste aplicaciones de ${n} área${n>1?"s":""}`+(dif?"; revisa este número":""):"";h.classList.toggle("aviso",dif);h.title=R.areasApps.join(", ");
   }
   if(modo==="gap"){syncApps("g");$("g-viat-w").hidden=!$("g-visita").checked;}
   const da=$("desc-aviso");da.hidden=!R.descAviso;
@@ -145,7 +145,7 @@ function calc(){
   const f=flags.find(x=>x[0]==="alerta")||flags[0],st=$("r-estado");
   st.className="estado"+(f?" "+f[0]:"");st.textContent=f?f[1]:"Lista para enviar";
   const filas=[];
-  if(modo!=="horas"){const n=apps.reduce((a,c)=>a+c[1].length,0);filas.push(["Aplicaciones de Odoo",String(n),"d"]);}
+  {const n=modo==="horas"?new Set(apps.flatMap(c=>c[1])).size:apps.reduce((a,c)=>a+c[1].length,0);if(n||modo!=="horas")filas.push(["Aplicaciones de Odoo",String(n),"d"]);}
   if(dAmt)filas.push(["Precio de lista",money(sub),"d"],["Descuento "+descPct+"%","−"+money(dAmt),"d"]);
   filas.push(["Subtotal",money(subD)]);if(viat)filas.push(["Viáticos",money(viat)]);
   filas.push(["IVA "+P.iva+"%",money(iva)],["Total",money(total),"t"]);

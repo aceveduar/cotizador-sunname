@@ -41,6 +41,13 @@ const NOTA_APPS="Las aplicaciones se implementan en su funcionalidad estándar. 
 const AREAS=[["ventas","Ventas y CRM",1,1,["Ventas","Facturación","Suscripciones","Alquiler","CRM"]],["fin","Finanzas",1,1,["Gastos","consolidación de estados financieros"]],["log","Compras e inventario",1,1,["Compras","Inventario"]],["web","Sitio web",1,0,["Sitio web","Comercio electrónico","Foro"]],["rh","Recursos humanos",1,0,["Reclutamiento","Vacaciones","Evaluaciones","Gastos"]],["pos","Punto de venta",1,0,["Tienda","Restaurantes"]],["serv","Servicios",1,0,["Proyecto","Hojas de horas","Soporte al cliente","Planeación"]],["mrp","Manufactura",2,0,["MRP","PLM","Calidad","Mantenimiento"]]];
 /* aplicaciones del catálogo que corresponden a cada área de Horas (para llevarlas a Proyecto o GAP) */
 const AREA_APPS={ventas:["ventas","fact","subs","renta","crm"],fin:["gastos","consol"],log:["compras","inv"],web:["web","ecom","foro"],rh:["recl","ausencias","eval","gastos"],pos:["pdv","pdvrest"],serv:["proyecto","hojas","helpdesk","planea"],mrp:["mrp","plm","calidad","mant"]};
+/* Área de negocio de cada aplicación, con las mismas áreas de Horas (más Marketing), para la nota
+   "Elegiste aplicaciones de N áreas" en Proyecto y GAP. Productividad, Documentos, Firma y Hoja de
+   cálculo son transversales y no cuentan. */
+const APP_AREA={...Object.fromEntries(Object.entries(AREA_APPS).reverse().flatMap(([area,ids])=>ids.map(id=>[id,area]))),
+  conta:"fin",blog:"web",chat:"web",elearn:"web",empleados:"rh",refer:"rh",flota:"rh",campo:"serv",citas:"serv",
+  mkauto:"mkt",mkmail:"mkt",mksms:"mkt",mksoc:"mkt",eventos:"mkt",encuestas:"mkt"};
+const NOMBRE_AREA={...Object.fromEntries(AREAS.map(a=>[a[0],a[1]])),mkt:"Marketing"};
 
 /* =================== Utilidades =================== */
 const numTxt=t=>parseFloat(String(t).replace(/[^\d.]/g,""))||0;
@@ -60,10 +67,11 @@ function cotizar(e,P,ctx={}){
   const v=id=>Math.max(0,numTxt(e[id]??""));
   const on=id=>!!e[id];
   const appsDe=pre=>APPS.map(([cat,l])=>[cat,l.filter(a=>on(pre+"-app-"+a[0])).map(a=>a[1])]).filter(c=>c[1].length);
+  const areasDe=pre=>Object.keys(NOMBRE_AREA).filter(ar=>Object.keys(APP_AREA).some(id=>APP_AREA[id]===ar&&on(pre+"-app-"+id))).map(ar=>NOMBRE_AREA[ar]);
   const modo=e["r:modo"]||"horas";
   const canal=P.canales.find(c=>c.id===e["r:canal"])||P.canales[0];
   const descPct=Math.min(100,v("desc")),desc=descPct/100;
-  let horas=0,sub=0,viat=0,titulo="",desg=[],flags=[],detalle="",dur="",conceptos=[],fasesH=null,cred=0,apps=[],paquete=null;
+  let horas=0,sub=0,viat=0,titulo="",desg=[],flags=[],detalle="",dur="",conceptos=[],fasesH=null,cred=0,apps=[],paquete=null,areasApps=[];
 
   if(modo==="horas"){
     titulo="Paquete de horas";
@@ -83,7 +91,7 @@ function cotizar(e,P,ctx={}){
     }
   }
   if(modo==="proy"){
-    titulo="Proyecto de implementación";apps=appsDe("p");
+    titulo="Proyecto de implementación";apps=appsDe("p");areasApps=areasDe("p");
     const u=v("p-usr"),ar=Math.max(1,v("p-areas")),em=Math.max(1,v("p-emp")),co=Math.max(1,v("p-cons")),dev=v("p-dev");
     const base=[["Base por "+u+" usuarios",tier(P.pUsuarios,u)],["Áreas ("+ar+" × "+P.hArea+" h)",ar*P.hArea],["Empresas adicionales",(em-1)*P.hEmpresa],
       ["Visitas ("+v("p-nvis")+" × "+v("p-hvis")+" h × "+co+" consultores)",v("p-nvis")*v("p-hvis")*co]];
@@ -107,7 +115,7 @@ function cotizar(e,P,ctx={}){
     if(u>50||em>2||ar>8)flags.push(["alerta","Proyecto grande: vende primero un análisis GAP"]);
   }
   if(modo==="gap"){
-    titulo="Análisis GAP";apps=appsDe("g");
+    titulo="Análisis GAP";apps=appsDe("g");areasApps=areasDe("g");
     const r=[["Preparación y cierre",P.gBase],["Usuarios ("+v("g-usr")+")",tier(P.gUsuarios,v("g-usr"))],["Empresas adicionales",Math.max(0,v("g-emp")-1)*P.gEmpresa],
       ["Áreas ("+v("g-areas")+" × "+P.gArea+" h)",v("g-areas")*P.gArea],["Sucursales o plantas",tier(P.gSuc,v("g-suc"))],
       ["Revisión de Odoo actual",on("g-odoo")?P.gOdoo:0],["Especificación de desarrollos",on("g-dev")?P.gDev:0],["Visita en sitio",on("g-visita")?P.gVisita:0]];
@@ -134,12 +142,12 @@ function cotizar(e,P,ctx={}){
   const pLic=custom?P.licCustom:P.licStandard;
   const lic=pLic>0&&uLic>0?{plan:custom?"Personalizado":"Estándar",u:uLic,mes:pLic*uLic}:null;
   return {modo,titulo,horas,sub,dAmt,anticipo,descPct,subD,viat,iva,total,com,canal,dur,detalle,apps,conceptos,requiere,flags,pagos,fasesH,lic,cred,
-    gapFolio:modo==="proy"?String(e["p-gapfolio"]??""):"",desg,paquete,descAviso};
+    gapFolio:modo==="proy"?String(e["p-gapfolio"]??""):"",desg,paquete,descAviso,areasApps};
 }
 
 /* Texto corto con las aplicaciones de una cotización guardada (para el Excel del historial) */
 const appsTexto=e=>{const r=cotizar(e,DEF);return r.apps.map(a=>`${a[0]}: ${a[1].join(", ")}`).join(" | ");};
 
-const api={DEF,APPS,APP,NOTA_APPS,AREAS,AREA_APPS,numTxt,fmtN,limpio,arriba,money,hrs,tier,cotizar,appsTexto};
+const api={DEF,APPS,APP,NOTA_APPS,AREAS,AREA_APPS,APP_AREA,numTxt,fmtN,limpio,arriba,money,hrs,tier,cotizar,appsTexto};
 if(typeof module!=="undefined"&&module.exports)module.exports=api;else raiz.Cotizador=api;
 })(this);
