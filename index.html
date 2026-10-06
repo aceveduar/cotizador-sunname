@@ -690,7 +690,8 @@ function pasarApps(de,a){
   new Set(ids).forEach(id=>{const c=$(pre+"-app-"+id);if(c&&!c.checked){c.checked=true;n++;}});
   if(n){syncApps(pre,true);toast(`Se agregaron ${n} aplicaci${n>1?"ones":"ón"} de lo que elegiste en ${de==="horas"?"Paquete de horas":de==="proy"?"Proyecto":"Análisis GAP"}`);}
 }
-$$("input[name=modo]").forEach(r=>r.addEventListener("change",()=>{if(r.checked&&r.value!=="horas"&&S.modoAct&&S.modoAct!==r.value)pasarApps(S.modoAct,r.value);}));
+// "input" llega antes que el recálculo general, que es el que actualiza S.modoAct
+$$("input[name=modo]").forEach(r=>r.addEventListener("input",()=>{if(r.checked&&r.value!=="horas"&&S.modoAct&&S.modoAct!==r.value)pasarApps(S.modoAct,r.value);}));
 $("areas").addEventListener("change",()=>{S.horasTocado=true;});
 $("v-cot").addEventListener("input",cambio);
 $("v-cot").addEventListener("change",e=>{if(e.target.type==="radio"||e.target.type==="checkbox")cambio();});
