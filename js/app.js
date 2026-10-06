@@ -348,9 +348,11 @@ document.addEventListener("click",e=>{if(e.target.closest("[data-ir-cot]"))ir("c
 
 /* =================== Historial =================== */
 $("f-estado").innerHTML=[["activas","Activas"],["todas","Todas"],...ESTADOS].map(e=>`<button data-e="${e[0]}" aria-pressed="${e[0]==="activas"}">${e[1]}</button>`).join("");
-$("f-estado").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.fEstado=b.dataset.e;$$("#f-estado button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderHist();});
-$("f-quien").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.quien=b.dataset.q;$$("#f-quien button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderHist();});
-$("f-buscar").addEventListener("input",renderHist);
+const POR_PAGINA=50;S.verN=POR_PAGINA;
+$("f-estado").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.fEstado=b.dataset.e;S.verN=POR_PAGINA;$$("#f-estado button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderHist();});
+$("f-quien").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S.quien=b.dataset.q;S.verN=POR_PAGINA;$$("#f-quien button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));renderHist();});
+$("f-buscar").addEventListener("input",()=>{S.verN=POR_PAGINA;renderHist();});
+$("lista").addEventListener("click",e=>{if(e.target.closest("[data-mas]")){S.verN+=POR_PAGINA;renderHist();}});
 
 async function nombres(ids){
   const falt=ids.filter(i=>i&&!(i in S.names));
@@ -396,7 +398,7 @@ function renderHist(){
   S.lista=lst;
   if(!lst.length){$("lista").innerHTML=`<div class="vacio">${S.quotes.length?"No hay cotizaciones con estos filtros.":`Aún no hay cotizaciones guardadas. Las que guardes o descargues en PDF aparecerán aquí.<br><button class="btn chico" style="margin-top:14px" data-ir-cot>Crear primera cotización</button>`}</div>`;}
   else $("lista").innerHTML=`<div class="q h"><span>Folio</span><span>Cliente</span><span>Vendedor</span><span style="text-align:right">Subtotal</span><span>Estado</span><span></span></div>`+
-    lst.map(q=>{const t=seguimiento(q);return `<div class="q"><span class="fo">${esc(q.folio)}<br><small style="color:var(--suave);font-weight:400">${fecha(q.creado)}</small></span>
+    lst.slice(0,S.verN).map(q=>{const t=seguimiento(q);return `<div class="q"><span class="fo">${esc(q.folio)}<br><small style="color:var(--suave);font-weight:400">${fecha(q.creado)}</small></span>
       <span class="cl"><b>${esc(q.cliente)}</b><small>${esc(q.titulo)} · ${hrs(q.horas||0)}${+q.descPct?" · "+(+q.descPct)+"% desc.":""}${q.origenGap?" · de "+esc(q.origenGap):""}</small>${t?`<span class="tag ${t[0]}">${t[1]}</span>`:""}</span>
       <span class="vd" data-uid="${esc(q.creadoPor||"")}"></span>
       <span class="mt">${money(q.subtotal||0)}</span>
@@ -404,6 +406,7 @@ function renderHist(){
         ${q.estado==="perdida"?`<select class="sel" data-motivo="${esc(q.id)}" aria-label="Motivo de pérdida" ${ajena(q)?"disabled":""}><option value="">¿Por qué se perdió?</option>${MOTIVOS.map(m=>`<option ${m===q.motivo?"selected":""}>${m}</option>`).join("")}</select>`:""}
         ${q.modo==="gap"&&q.estado==="ganada"?`<button class="btn chico" data-g2p="${esc(q.id)}">Pasar a proyecto</button>`:""}</span>
       <span class="acc"><button class="btn linea chico" data-abrir="${esc(q.id)}">Abrir</button><button class="btn linea chico" data-dup="${esc(q.id)}">Duplicar</button></span></div>`;}).join("");
+  if(lst.length>S.verN)$("lista").insertAdjacentHTML("beforeend",`<div class="mas-lista"><span>Mostrando ${S.verN} de ${lst.length}</span><button class="btn linea chico" data-mas>Ver ${Math.min(POR_PAGINA,lst.length-S.verN)} más</button></div>`);
   // administración: comisiones y motivos del mes
   $("adm").hidden=!S.admin;
   if(S.admin){
@@ -419,6 +422,24 @@ function renderHist(){
   }
   nombres([...new Set(S.quotes.map(q=>q.creadoPor).filter(Boolean))]);
 }
+/* El historial trae las cotizaciones sin el formulario completo; se pide al abrirlas */
+async function completar(q){
+  if(q.inputs)return q;
+  try{const s=await S.db.doc("cotizaciones/"+q.id).get();if(s.exists)Object.assign(q,s.data());}catch(e){}
+  return q;
+}
+/* Formularios de varias cotizaciones a la vez (para el Excel), en grupos */
+async function inputsDe(lst){
+  const faltan=lst.filter(q=>!q.inputs).map(q=>q.id),r={};
+  if(faltan.length&&S.sb){
+    for(let i=0;i<faltan.length;i+=100){
+      const {data}=await S.sb.from("cotizaciones").select("id,inputs:datos->inputs").in("id",faltan.slice(i,i+100));
+      (data||[]).forEach(x=>r[x.id]=x.inputs||{});
+    }
+  }
+  lst.forEach(q=>{if(q.inputs)r[q.id]=q.inputs;});
+  return r;
+}
 function gapAProyecto(q){
   const i=q.inputs||{};
   S.currentId=null;S.currentFolio="";S.currentDoc=null;S.dirty=false;
@@ -431,6 +452,7 @@ function gapAProyecto(q){
 document.addEventListener("click",async e=>{
   const t=e.target.closest("[data-abrir],[data-dup],[data-apr],[data-rech],[data-g2p]");if(!t)return;
   const id=t.dataset.abrir||t.dataset.dup||t.dataset.apr||t.dataset.rech||t.dataset.g2p,q=S.quotes.find(x=>x.id===id);if(!q)return;
+  if(t.dataset.g2p||t.dataset.abrir||t.dataset.dup){t.disabled=true;await completar(q);t.disabled=false;}
   if(t.dataset.g2p){gapAProyecto(q);return;}
   if(t.dataset.abrir||t.dataset.dup){
     restore(FRESH);restore(q.inputs||{});drawDynamic();restore(q.inputs||{});
@@ -458,7 +480,8 @@ $("b-exp").addEventListener("click",async()=>{
   if(!window.XLSX){toast("No se pudo cargar el generador de Excel. Recarga la página.");return;}
   if(!S.dl){toast("No se pudo preparar la descarga. Recarga la página.");return;}
   const lst=S.lista||[];if(!lst.length){toast("No hay cotizaciones para exportar con estos filtros");return;}
-  const filas=lst.map(q=>{const r={Folio:q.folio,Fecha:(q.creado||"").slice(0,10),Cliente:q.cliente,Modalidad:q.titulo,Aplicaciones:appsTexto(q.inputs||{}),Vendedor:S.names[q.creadoPor]||"",Horas:q.horas||0,
+  const ins=await inputsDe(lst);
+  const filas=lst.map(q=>{const r={Folio:q.folio,Fecha:(q.creado||"").slice(0,10),Cliente:q.cliente,Modalidad:q.titulo,Aplicaciones:appsTexto(ins[q.id]||{}),Vendedor:S.names[q.creadoPor]||"",Horas:q.horas||0,
     "Descuento %":q.descPct||0,"Subtotal sin IVA":q.subtotal||0,"Total con IVA":q.total||0,Estado:EST[q.estado]||q.estado,"Motivo de pérdida":q.motivo||"","Origen GAP":q.origenGap||""};
     if(S.admin)r["Comisión"]=q.comision||0;return r;});
   const ws=XLSX.utils.json_to_sheet(filas);ws["!cols"]=Object.keys(filas[0]).map(k=>({wch:Math.max(10,k.length+2,...filas.map(f=>String(f[k]).length+1))}));
@@ -753,34 +776,77 @@ const SUPABASE_URL="https://wemyausioojlghafwolj.supabase.co";
 const SUPABASE_KEY="sb_publishable_Lu9Yn0bp12DO178UWzqXfg_zSWF0E42";
 
 function cargarScript(src,sri){return new Promise((ok,no)=>{const e=document.createElement("script");e.src=src;if(sri){e.integrity=sri;e.crossOrigin="anonymous";}e.onload=ok;e.onerror=no;document.head.appendChild(e);});}
+/* Datos en Supabase.
+   Las colecciones (cotizaciones, aprobaciones) se descargan una vez y después solo se
+   actualiza la fila que cambia (tiempo real), en lugar de volver a bajar todo.
+   De las cotizaciones se baja solo lo que usa el historial; el formulario completo
+   ("inputs") se trae al abrir, duplicar o exportar (ver completar() e inputsDe()). */
+const LIGERO={cotizaciones:["folio","cliente","modo","titulo","horas","subtotal","total","descPct","canal","origenGap","comision","estado","creadoPor","creado","actualizado","enviada","ganada","perdida","motivo","rechazo"]};
+const LOTE=1000;   // Supabase entrega máximo 1,000 filas por consulta
 function supaDB(sb){
-  const subs={},avisar=t=>setTimeout(()=>(subs[t]||[]).forEach(f=>f()),0);
-  const canal=sb.channel("cotizador");
-  ["config","cotizaciones","aprobaciones"].forEach(t=>canal.on("postgres_changes",{event:"*",schema:"public",table:t},()=>avisar(t)));
-  canal.subscribe();
+  const subs={},csubs={},cache={},cargando={};
+  const avisar=t=>setTimeout(()=>(subs[t]||[]).forEach(f=>f()),0);
+  const emitir=t=>setTimeout(()=>(csubs[t]||[]).forEach(f=>f()),0);
   const falla=e=>{throw {code:e&&["42501","P0001"].includes(e.code)?"invalid_argument":"unavailable",message:e&&e.message};};
   const snap=(id,row)=>({id,exists:!!row,data:()=>row?clone(row.datos):undefined,metadata:{fromCache:false,hasPendingWrites:false}});
+  const ligero=(t,x)=>LIGERO[t]?Object.fromEntries(LIGERO[t].filter(k=>x[k]!==null&&x[k]!==undefined).map(k=>[k,x[k]])):x.datos;
+  async function cargar(t){
+    if(cargando[t])return cargando[t];
+    return cargando[t]=(async()=>{
+      const sel=LIGERO[t]?"id,"+LIGERO[t].map(k=>`${k}:datos->${k}`).join(","):"id,datos";
+      const m=new Map();
+      for(let i=0;;i+=LOTE){
+        const {data,error}=await sb.from(t).select(sel).order("id").range(i,i+LOTE-1);
+        if(error)falla(error);
+        (data||[]).forEach(x=>m.set(x.id,ligero(t,x)));
+        if(!data||data.length<LOTE)break;
+      }
+      cache[t]=m;
+    })().finally(()=>{cargando[t]=null;});
+  }
+  const recargarTodo=()=>Object.keys(cache).forEach(t=>cargar(t).then(()=>emitir(t),()=>{}));
+  // después de guardar desde esta pantalla: trae solo esa fila (los triggers pueden haberla ajustado)
+  async function refrescar(t,id){
+    if(cache[t]){const {data}=await sb.from(t).select("id,datos").eq("id",id).maybeSingle();if(data)cache[t].set(id,data.datos);else cache[t].delete(id);emitir(t);}
+    avisar(t);
+  }
+  const canal=sb.channel("cotizador");
+  ["config","cotizaciones","aprobaciones"].forEach(t=>canal.on("postgres_changes",{event:"*",schema:"public",table:t},pl=>{
+    if(cache[t]){
+      if(pl.eventType==="DELETE"){if(pl.old&&pl.old.id)cache[t].delete(pl.old.id);}
+      else if(pl.new&&pl.new.id&&pl.new.datos)cache[t].set(pl.new.id,pl.new.datos);
+      emitir(t);
+    }
+    avisar(t);
+  }));
+  // si se cayó la conexión en tiempo real, al reconectar se vuelve a descargar todo una vez
+  let suscrito=false;
+  canal.subscribe(st=>{if(st==="SUBSCRIBED"){if(suscrito)recargarTodo();suscrito=true;}});
+  // la pestaña estuvo oculta un rato (computadora dormida, otra ventana): se refresca al volver
+  let oculta=0;
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)oculta=Date.now();else if(oculta&&Date.now()-oculta>60000)recargarTodo();});
   function doc(path){
     const [t,id]=path.split("/");
     const r={id,path,
       get:async()=>{const {data,error}=await sb.from(t).select("id,datos").eq("id",id).maybeSingle();if(error)falla(error);return snap(id,data);},
-      set:async d=>{const {error}=await sb.from(t).upsert({id,datos:d});if(error)falla(error);avisar(t);},
+      set:async d=>{const {error}=await sb.from(t).upsert({id,datos:d});if(error)falla(error);refrescar(t,id);},
       update:async d=>{
-        if(t==="cotizaciones"){const {error}=await sb.rpc("actualizar_cotizacion",{p_id:id,p_cambios:d});if(error)falla(error);avisar(t);return;}
+        if(t==="cotizaciones"){const {error}=await sb.rpc("actualizar_cotizacion",{p_id:id,p_cambios:d});if(error)falla(error);refrescar(t,id);return;}
         const s0=await r.get();if(!s0.exists)throw {code:"invalid_argument"};await r.set({...s0.data(),...d});},
-      delete:async()=>{const {error}=await sb.from(t).delete().eq("id",id);if(error)falla(error);avisar(t);},
-      
+      delete:async()=>{const {error}=await sb.from(t).delete().eq("id",id);if(error)falla(error);if(cache[t]){cache[t].delete(id);emitir(t);}avisar(t);},
       onSnapshot:(n,e)=>{const f=()=>r.get().then(n,x=>e&&e(x));(subs[t]=subs[t]||[]).push(f);f();return()=>{subs[t]=subs[t].filter(x=>x!==f);};}};
     return r;
   }
   function col(t,ord){
     const q={path:t,doc:id=>doc(t+"/"+id),orderBy:(f,dir)=>col(t,[f,dir]),limit:()=>q,where:()=>q,
       onSnapshot:(n,e)=>{
-        const f=async()=>{const {data,error}=await sb.from(t).select("id,datos");if(error){e&&e({code:"unavailable",message:error.message});return;}
-          let docs=(data||[]).map(x=>snap(x.id,x));
+        const f=()=>{
+          let docs=[...cache[t].entries()].map(([id,datos])=>snap(id,{datos}));
           if(ord)docs.sort((a,b)=>((a.data()[ord[0]]||"")>(b.data()[ord[0]]||"")?1:-1)*(ord[1]==="desc"?-1:1));
           n({docs,size:docs.length,empty:!docs.length,metadata:{}});};
-        (subs[t]=subs[t]||[]).push(f);f();return()=>{subs[t]=subs[t].filter(x=>x!==f);};}};
+        (csubs[t]=csubs[t]||[]).push(f);
+        if(cache[t])f();else cargar(t).then(()=>emitir(t),x=>e&&e({code:"unavailable",message:x&&x.message}));
+        return()=>{csubs[t]=csubs[t].filter(x=>x!==f);};}};
     return q;
   }
   return {doc,collection:col};

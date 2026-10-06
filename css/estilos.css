@@ -331,3 +331,4 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--texto);color:var(--fondo);padding:10px 16px;border-radius:10px;font-size:14px;z-index:9;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:calc(100% - 32px)}
 @media (min-width:921px){.toast{bottom:24px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+.mas-lista{display:flex;align-items:center;justify-content:center;gap:14px;padding:16px 0 4px;color:var(--suave);font-size:13.5px}
