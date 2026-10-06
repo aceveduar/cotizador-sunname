@@ -133,9 +133,19 @@ h1{font:700 clamp(24px,3.4vw,32px)/1.15 var(--f-display);margin:6px 0 4px;color:
 .areas .chip{border-radius:12px;align-items:flex-start;padding:11px 14px}
 .areas .chip .dot{margin-top:3px}
 .areas .chip .apps{display:block;font-size:12.5px;color:var(--suave);font-weight:400;line-height:1.35;margin-top:2px}
-.apps-hint{margin:0 0 4px;font-size:13px;color:var(--suave)}
-.apps-cat{margin-top:12px}
-.apps-cat .mini{margin-bottom:8px;text-transform:none;letter-spacing:0;font-size:12.5px}
+/* casillas cuadradas para selección múltiple (áreas y aplicaciones) */
+.areas .chip .dot,.chips.compact .chip .dot{border-radius:5px}
+.areas .chip:has(input:checked) .dot::after,.chips.compact .chip:has(input:checked) .dot::after{width:4px;height:8px;border-radius:0;background:none;border:solid var(--marca-texto-acento);border-width:0 2px 2px 0;transform:translate(0,-1px) rotate(45deg)}
+.apps-hint{margin:0 0 10px;font-size:13px;color:var(--suave)}
+.apps-sel{margin:0 0 6px;padding:10px 12px;border-radius:10px;background:var(--superficie-2);font-size:13.5px;color:var(--suave)}
+.apps-sel b{color:var(--texto)}
+.apps-cat+.apps-cat{border-top:1px solid var(--linea)}
+.apps-cat summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:10px 0;font-size:14px;font-weight:500;color:var(--texto)}
+.apps-cat summary::-webkit-details-marker{display:none}
+.apps-cat summary::before{content:"";width:6px;height:6px;margin:0 2px;border:solid var(--suave);border-width:0 2px 2px 0;transform:rotate(-45deg);transition:transform .15s}
+.apps-cat[open] summary::before{transform:rotate(45deg)}
+.apps-cat .cnt{font-size:12px;font-weight:600;min-width:20px;height:20px;padding:0 7px;border-radius:999px;background:var(--marca-acento);color:var(--marca-texto-acento);display:inline-grid;place-items:center}
+.apps-cat .chips{padding:0 0 12px}
 .chips.compact .chip{padding:6px 12px;font-size:13.5px}
 .seg{display:inline-flex;flex-wrap:wrap;gap:4px;background:var(--superficie-2);padding:4px;border-radius:12px}
 .seg label,.seg button{position:relative;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:500;font-size:14px;color:var(--suave);border:0;background:none}
@@ -308,6 +318,7 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .nota-btn{position:fixed;left:16px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:6;display:inline-flex;align-items:center;gap:8px;border:0;border-radius:50px;padding:11px 16px;background:var(--superficie);color:var(--titulo);font-weight:600;box-shadow:var(--sombra-md);cursor:pointer;border:1px solid var(--linea)}
 .nota-btn .cnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--marca-acento);color:var(--marca-texto-acento);font-size:12px;display:inline-grid;place-items:center}
 @media (max-width:920px){.nota-btn{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+@media (max-width:620px){.nota-btn{left:auto;right:12px;width:46px;height:46px;padding:0;justify-content:center;border-radius:50%}.nota-btn .lbl{display:none}.nota-btn .cnt{position:absolute;top:-4px;right:-4px}}
 dialog.notas{width:min(560px,calc(100% - 32px));max-height:calc(100% - 48px);border:1px solid var(--linea);border-radius:20px;padding:0;background:var(--superficie);color:var(--texto);box-shadow:var(--sombra-md)}
 dialog.notas::backdrop{background:rgba(14,30,53,.45)}
 .notas .in{padding:22px;display:grid;gap:14px}
@@ -393,7 +404,7 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
 
         <div data-pane="proy" hidden>
           <div class="grupo"><h3>Alcance</h3><div class="campos" id="p-alc"></div></div>
-          <div class="grupo"><h3>Aplicaciones de Odoo</h3><p class="apps-hint" data-nota-apps></p><div id="p-apps"></div></div>
+          <div class="grupo"><h3>Aplicaciones de Odoo</h3><p class="apps-hint" data-nota-apps></p><p class="apps-sel" id="p-apps-sel"></p><div id="p-apps"></div></div>
           <div class="grupo"><h3>Visitas presenciales</h3><div class="campos" id="p-vis"></div></div>
           <div class="grupo"><h3>Desarrollos y soporte</h3><div class="campos" id="p-ext"></div></div>
           <div class="grupo" id="p-gap-w" hidden>
@@ -405,7 +416,7 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
 
         <div data-pane="gap" hidden>
           <div class="grupo"><h3>Alcance del análisis</h3><div class="campos" id="g-alc"></div></div>
-          <div class="grupo"><h3>Aplicaciones de Odoo</h3><p class="apps-hint" data-nota-apps></p><div id="g-apps"></div></div>
+          <div class="grupo"><h3>Aplicaciones de Odoo</h3><p class="apps-hint" data-nota-apps></p><p class="apps-sel" id="g-apps-sel"></p><div id="g-apps"></div></div>
           <div class="grupo">
             <label class="switch"><div><b>Ya utiliza Odoo</b><small>Incluye revisión del sistema actual</small></div><input type="checkbox" id="g-odoo"></label>
             <label class="switch"><div><b>Se esperan desarrollos</b><small>Incluye especificación preliminar</small></div><input type="checkbox" id="g-dev" checked></label>
@@ -517,7 +528,7 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
     <p class="pie">Acceso solo para el equipo de Sunname.</p>
   </div>
 </div>
-<button class="nota-btn" id="nota-abrir" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg>Dejar nota<span class="cnt" id="nota-cnt" hidden>0</span></button>
+<button class="nota-btn" id="nota-abrir" aria-haspopup="dialog" aria-label="Dejar nota"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="m13.5 6.5 4 4"/></svg><span class="lbl">Dejar nota</span><span class="cnt" id="nota-cnt" hidden>0</span></button>
 <dialog class="notas" id="notas" aria-labelledby="notas-t">
   <form class="in" method="dialog" id="nota-form">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px"><h2 id="notas-t">Notas de prueba</h2><button class="btn linea chico" value="cerrar" formnovalidate>Cerrar</button></div>
@@ -635,10 +646,21 @@ $("p-vis").innerHTML=stepper("p-nvis","Número de visitas",4)+stepper("p-hvis","
 $("p-ext").innerHTML=stepper("p-dev","Horas de desarrollo",40,5,"Validadas por el área técnica")+stepper("p-pm","Meses de soporte",3,1,"Después de salir a producción")+stepper("p-pmh","Horas por mes",10);
 $("g-alc").innerHTML=stepper("g-usr","Usuarios",60)+stepper("g-emp","Empresas",2)+stepper("g-areas","Áreas a analizar",8)+stepper("g-suc","Sucursales o plantas",3);
 $("g-viat-w").innerHTML=stepper("g-viat","Viáticos estimados",10000,1000,"",true);
-const appsHTML=pre=>APPS.map(([cat,l])=>`<div class="apps-cat"><div class="mini">${cat}</div><div class="chips compact">${l.map(a=>`<label class="chip"><input type="checkbox" id="${pre}-app-${a[0]}" ${a[2]?"checked":""}><span class="dot"></span>${a[1]}</label>`).join("")}</div></div>`).join("");
+const appsHTML=pre=>APPS.map(([cat,l],i)=>`<details class="apps-cat" data-cat="${pre}-${i}"><summary>${cat}<span class="cnt" hidden></span></summary><div class="chips compact">${l.map(a=>`<label class="chip"><input type="checkbox" id="${pre}-app-${a[0]}" ${a[2]?"checked":""}><span class="dot"></span>${a[1]}</label>`).join("")}</div></details>`).join("");
 $("p-apps").innerHTML=appsHTML("p");$("g-apps").innerHTML=appsHTML("g");
 $$("[data-nota-apps]").forEach(e=>e.textContent=NOTA_APPS);
 const appsSel=pre=>APPS.map(([cat,l])=>[cat,l.filter(a=>$(pre+"-app-"+a[0]).checked).map(a=>a[1])]).filter(c=>c[1].length);
+/* contador por categoría y resumen de lo elegido; con abrir=true despliega solo las categorías que tienen algo marcado */
+function syncApps(pre,abrir){
+  const nombres=[];
+  APPS.forEach(([cat,l],i)=>{
+    const sel=l.filter(a=>$(pre+"-app-"+a[0]).checked),det=document.querySelector(`[data-cat="${pre}-${i}"]`),c=det.querySelector(".cnt");
+    c.hidden=!sel.length;c.textContent=sel.length;if(abrir)det.open=sel.length>0;nombres.push(...sel.map(a=>a[1]));
+  });
+  const n=nombres.length,lista=n>8?nombres.slice(0,8).join(", ")+` y ${n-8} más`:nombres.join(", ");
+  $(pre+"-apps-sel").innerHTML=n?`<b>${n} seleccionada${n>1?"s":""}:</b> ${esc(lista)}`:"Ninguna aplicación seleccionada. Abre una categoría para elegir.";
+}
+syncApps("p",true);syncApps("g",true);
 ["h-emp","p-areas","p-emp","p-cons","g-emp","g-areas"].forEach(id=>$(id).setAttribute("min","1"));
 const FRESH=snapshot();
 
@@ -668,6 +690,7 @@ function restore(o){
     else{const i=$(k);if(!i)continue;if(i.type==="checkbox")i.checked=!!o[k];else i.value=o[k];}
   }
   $("mas-cliente").open=!!(o.contacto||o.correo||o.telefono);
+  syncApps("p",true);syncApps("g",true);
 }
 
 /* =================== Cálculo =================== */
@@ -697,7 +720,7 @@ function calc(){
     }
   }
   if(modo==="proy"){
-    titulo="Proyecto de implementación";apps=appsSel("p");
+    titulo="Proyecto de implementación";apps=appsSel("p");syncApps("p");
     const u=v("p-usr"),ar=Math.max(1,v("p-areas")),em=Math.max(1,v("p-emp")),co=Math.max(1,v("p-cons")),dev=v("p-dev");
     const base=[["Base por "+u+" usuarios",tier(P.pUsuarios,u)],["Áreas ("+ar+" × "+P.hArea+" h)",ar*P.hArea],["Empresas adicionales",(em-1)*P.hEmpresa],
       ["Visitas ("+v("p-nvis")+" × "+v("p-hvis")+" h × "+co+" consultores)",v("p-nvis")*v("p-hvis")*co]];
@@ -724,7 +747,7 @@ function calc(){
     if(u>50||em>2||ar>8)flags.push(["alerta","Proyecto grande: vende primero un análisis GAP"]);
   }
   if(modo==="gap"){
-    titulo="Análisis GAP";apps=appsSel("g");
+    titulo="Análisis GAP";apps=appsSel("g");syncApps("g");
     const r=[["Preparación y cierre",P.gBase],["Usuarios ("+v("g-usr")+")",tier(P.gUsuarios,v("g-usr"))],["Empresas adicionales",Math.max(0,v("g-emp")-1)*P.gEmpresa],
       ["Áreas ("+v("g-areas")+" × "+P.gArea+" h)",v("g-areas")*P.gArea],["Sucursales o plantas",tier(P.gSuc,v("g-suc"))],
       ["Revisión de Odoo actual",$("g-odoo").checked?P.gOdoo:0],["Especificación de desarrollos",$("g-dev").checked?P.gDev:0],["Visita en sitio",$("g-visita").checked?P.gVisita:0]];
@@ -757,6 +780,7 @@ function calc(){
   const f=flags.find(x=>x[0]==="alerta")||flags[0],st=$("r-estado");
   st.className="estado"+(f?" "+f[0]:"");st.textContent=f?f[1]:"Lista para enviar";
   const filas=[];
+  if(modo!=="horas"){const n=apps.reduce((a,c)=>a+c[1].length,0);filas.push(["Aplicaciones de Odoo",String(n),"d"]);}
   if(dAmt)filas.push(["Precio de lista",money(sub),"d"],["Descuento "+descPct+"%","−"+money(dAmt),"d"]);
   filas.push(["Subtotal",money(subD)]);if(viat)filas.push(["Viáticos",money(viat)]);
   filas.push(["IVA "+P.iva+"%",money(iva)],["Total",money(total),"t"]);
