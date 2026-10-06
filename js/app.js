@@ -390,7 +390,7 @@ function renderHist(){
   const gan=base.filter(q=>q.estado==="ganada"),per=base.filter(q=>q.estado==="perdida");
   const sum=a=>a.reduce((s,q)=>s+(q.subtotal||0),0),nc=n=>n+(n===1?" cotización":" cotizaciones");
   const tasa=gan.length+per.length?Math.round(gan.length*100/(gan.length+per.length)):null;
-  $("kpis").innerHTML=[["En proceso",money(sum(act)),nc(act.length)+" · sin IVA"],["Ganadas",money(sum(gan)),nc(gan.length)],["Tasa de cierre",tasa===null?"—":tasa+"%","ganadas contra perdidas"],["Cotizado total",money(sum(base)),nc(base.length)]]
+  $("kpis").innerHTML=[["En proceso",money(sum(act)),nc(act.length)+" · sin IVA"],["Ganadas",money(sum(gan)),nc(gan.length)+" · sin IVA"],["Tasa de cierre",tasa===null?"—":tasa+"%","ganadas contra perdidas"],["Cotizado total",money(sum(base)),nc(base.length)+" · sin IVA"]]
     .map(k=>`<div class="kpi"><small>${k[0]}</small><b>${k[1]}</b><span>${k[2]}</span></div>`).join("");
   // cola de autorización
   const cola=S.quotes.filter(q=>q.estado==="por_autorizar");
@@ -408,7 +408,7 @@ function renderHist(){
   const lst=base.filter(q=>(S.fEstado==="todas"||(S.fEstado==="activas"?act.includes(q):q.estado===S.fEstado))&&(!qtxt||(q.cliente||"").toLowerCase().includes(qtxt)||(q.folio||"").toLowerCase().includes(qtxt)));
   S.lista=lst;
   if(!lst.length){$("lista").innerHTML=`<div class="vacio">${S.quotes.length?"No hay cotizaciones con estos filtros.":`Aún no hay cotizaciones guardadas. Las que guardes o descargues en PDF aparecerán aquí.<br><button class="btn chico" style="margin-top:14px" data-ir-cot>Crear primera cotización</button>`}</div>`;}
-  else $("lista").innerHTML=`<div class="q h"><span>Folio</span><span>Cliente</span><span>Vendedor</span><span style="text-align:right">Subtotal</span><span>Estado</span><span></span></div>`+
+  else $("lista").innerHTML=`<div class="q h"><span>Folio</span><span>Cliente</span><span>Vendedor</span><span style="text-align:right">Subtotal<small class="sub-h">sin IVA</small></span><span>Estado</span><span></span></div>`+
     lst.slice(0,S.verN).map(q=>{const t=seguimiento(q);return `<div class="q"><span class="fo">${esc(q.folio)}<br><small style="color:var(--suave);font-weight:400">${fecha(q.creado)}</small></span>
       <span class="cl"><b>${esc(q.cliente)}</b><small>${esc(q.titulo)} · ${hrs(q.horas||0)}${+q.descPct?" · "+(+q.descPct)+"% desc.":""}${q.origenGap?" · de "+esc(q.origenGap):""}</small>${t?`<span class="tag ${t[0]}">${t[1]}</span>`:""}</span>
       <span class="vd" data-uid="${esc(q.creadoPor||"")}"></span>

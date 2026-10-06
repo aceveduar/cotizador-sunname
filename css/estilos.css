@@ -224,6 +224,7 @@ pre.texto{white-space:pre-wrap;font:13px/1.5 var(--f-texto);background:rgba(0,0,
 .q .cl b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .q .cl small,.q .vd{color:var(--suave);font-size:13px}
 .q .mt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.q.h .sub-h{display:block;font-size:10.5px;font-weight:500;letter-spacing:.04em;text-transform:none}
 .q .fo{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
 .q .acc{display:flex;gap:6px;justify-content:flex-end}
 .sel{padding:6px 8px;border-radius:8px;border:1px solid var(--linea);background:var(--fondo);font-size:13px;font-weight:600;width:100%}
