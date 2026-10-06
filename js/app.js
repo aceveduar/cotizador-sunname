@@ -545,7 +545,7 @@ const SECS=[
     tablas:[{k:"gUsuarios",titulo:"Horas adicionales por usuarios",u:"h"},{k:"gSuc",titulo:"Horas adicionales por sucursales",u:"h",que:"sucursales"}]},
   {id:"lic",t:"Licencias Odoo",d:"Precio por usuario al mes que se muestra como referencia; no se suma al total. Déjalo en 0 para no mostrarlo. Revisa los precios vigentes en odoo.com/es/pricing.",f:[
     ["licStandard","Plan Estándar","Por usuario al mes","MXN"],["licCustom","Plan Personalizado","Por usuario al mes; se usa cuando hay desarrollos","MXN"]]},
-  {id:"com",t:"Comisiones",d:"Porcentaje de comisión según quién hizo la venta. Se calcula sobre el subtotal, sin IVA ni viáticos.",canales:true}
+  {id:"com",t:"Comisiones",d:"Porcentaje de comisión según quién hizo la venta. Se calcula sobre los servicios, sin IVA ni viáticos.",canales:true}
 ];
 let editable=true;
 /* resalta en el menú lateral la sección que se está viendo */
