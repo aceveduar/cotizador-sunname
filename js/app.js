@@ -292,21 +292,22 @@ async function hacerPDF(R){
   d.setFont("helvetica","normal");d.setFontSize(10);T(P.vigencia+" días",RX,y+18);
   // contacto, correo y teléfono, cada uno en su renglón y dentro de su columna (no se enciman con la duración)
   const cont=[$("contacto").value,$("correo").value,$("telefono").value].map(x=>x.trim()).filter(Boolean);
-  if(cont.length){d.setFontSize(10);d.setTextColor(90,98,95);d.text(cont.flatMap(x=>d.splitTextToSize(pdfTxt(x),RX-M-24)).slice(0,3),M,y+34,{lineHeightFactor:1.3});}
-  d.setTextColor(110,118,115);d.setFontSize(9);T("DURACIÓN ESTIMADA",RX,y+40);d.setTextColor(27,34,32);d.setFontSize(10);d.text(d.splitTextToSize(pdfTxt(R.dur||"-"),190),RX,y+56,{lineHeightFactor:1.35});
-  // título y descripción
-  y=236;d.setDrawColor(221,225,220);d.line(M,y-14,W-M,y-14);
+  let finIzq=y+18;
+  if(cont.length){d.setFontSize(10);d.setTextColor(90,98,95);const cl=cont.flatMap(x=>d.splitTextToSize(pdfTxt(x),RX-M-24)).slice(0,3);d.text(cl,M,y+34,{lineHeightFactor:1.3});finIzq=y+34+(cl.length-1)*13;}
+  d.setTextColor(110,118,115);d.setFontSize(9);T("DURACIÓN ESTIMADA",RX,y+40);d.setTextColor(27,34,32);d.setFontSize(10);const dl=d.splitTextToSize(pdfTxt(R.dur||"-"),190);d.text(dl,RX,y+56,{lineHeightFactor:1.35});
+  // título y descripción: empiezan debajo de lo más bajo del encabezado
+  y=Math.max(finIzq,y+56+(dl.length-1)*13.5)+36;d.setDrawColor(221,225,220);d.line(M,y-14,W-M,y-14);
   d.setTextColor(...pri);d.setFont("helvetica","bold");d.setFontSize(15);T(R.titulo,M,y+8);
   d.setTextColor(60,68,65);d.setFont("helvetica","normal");d.setFontSize(10.5);
   const lines=d.splitTextToSize(pdfTxt(R.detalle),W-2*M);d.text(lines,M,y+28,{lineHeightFactor:1.45});
-  y=y+28+lines.length*15.2+18;
+  y=y+28+lines.length*15.2+14;
   // aplicaciones de Odoo
   if(R.apps&&R.apps.length){
     ensure(60);d.setTextColor(...pri);d.setFont("helvetica","bold");d.setFontSize(11);T(R.modo==="horas"?"Aplicaciones de Odoo incluidas":"Aplicaciones de Odoo consideradas",M,y);y+=18;
     const LW=150;
     R.apps.forEach(a=>{const l=d.splitTextToSize(pdfTxt(a[1].join(", ")),W-2*M-LW);ensure(l.length*13.3+6);
       d.setFont("helvetica","bold");d.setFontSize(10);d.setTextColor(27,34,32);T(a[0],M,y);
-      d.setFont("helvetica","normal");d.setTextColor(60,68,65);d.text(l,M+LW,y,{lineHeightFactor:1.35});y+=l.length*13.3+3;});
+      d.setFont("helvetica","normal");d.setTextColor(60,68,65);d.text(l,M+LW,y,{lineHeightFactor:1.35});y+=l.length*13.3+2;});
     d.setFontSize(9);d.setTextColor(110,118,115);const nt=d.splitTextToSize(pdfTxt(NOTA_APPS),W-2*M);ensure(nt.length*12+4);d.text(nt,M,y+4,{lineHeightFactor:1.35});y+=nt.length*12.2+16;
   }
   // tabla de conceptos
@@ -331,7 +332,7 @@ async function hacerPDF(R){
   if(R.modo==="proy"){const X=W-M-12;tabla("Plan de pagos",[["Hito",M+12],["%",X-150,"right"],["Monto",X,"right"]],R.pagos.map(p=>[p[0],p[1]+"%",money(p[2])]));}
   // condiciones: se mide el bloque completo y solo pasa a otra hoja si de verdad no cabe
   d.setFont("helvetica","normal");d.setFontSize(9.5);
-  const cond=[R.modo==="proy"?"Forma de pago: según el plan de pagos por hito.":`Forma de pago: ${P.pago}.`,`Horas estimadas: ${hrs(R.horas)}. Vigencia de la cotización: ${P.vigencia} días.`,
+  const cond=[(R.modo==="proy"?"Forma de pago: según el plan de pagos por hito.":`Forma de pago: ${P.pago}.`)+` Horas estimadas: ${hrs(R.horas)}. Vigencia de la cotización: ${P.vigencia} días.`,
     R.lic?`Referencia de licencias Odoo ${R.lic.plan}: ${money(R.lic.mes)} al mes por ${R.lic.u} usuarios. Las licencias se contratan directamente con Odoo y no están incluidas en esta cotización.`:"",P.terminos].filter(Boolean);
   const partes=cond.map(c=>d.splitTextToSize(pdfTxt(c),W-2*M)),alto=18+partes.reduce((a,l)=>a+l.length*13.3+5,0);
   if(y+alto>H-54){d.addPage();y=60;}
