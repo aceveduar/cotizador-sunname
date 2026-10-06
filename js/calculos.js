@@ -37,8 +37,8 @@ const APPS=[
 ];
 const APP=Object.fromEntries(APPS.flatMap(c=>c[1]).map(a=>[a[0],a[1]]));
 const NOTA_APPS="Las aplicaciones se implementan en su funcionalidad estándar. Cualquier adecuación de funcionamiento o integración se cotiza por separado.";
-/* Áreas del paquete de horas: [id, nombre, peso, marcada por defecto, aplicaciones que incluye (mismos textos que Odoo)] */
-const AREAS=[["ventas","Ventas y CRM",1,1,["Ventas","Facturación","Suscripciones","Alquiler","CRM"]],["fin","Finanzas",1,1,["Gastos","consolidación de estados financieros"]],["log","Compras e inventario",1,1,["Aprovisionamiento","Inventario"]],["web","Sitio web",1,0,["Sitio web","Comercio electrónico","Foro"]],["rh","Recursos humanos",1,0,["Reclutamiento","Vacaciones","Evaluaciones","Gastos"]],["pos","Punto de venta",1,0,["Tienda","Restaurantes"]],["serv","Servicios",1,0,["Proyecto","Hojas de horas","Soporte al cliente","Planeación"]],["mrp","Manufactura",2,0,["MRP","PLM","Calidad","Mantenimiento"]]];
+/* Áreas del paquete de horas: [id, nombre, peso, marcada por defecto, aplicaciones que incluye (textos de Odoo; "Compras" en lugar de "Aprovisionamiento" para coincidir con la lista de Proyecto y GAP)] */
+const AREAS=[["ventas","Ventas y CRM",1,1,["Ventas","Facturación","Suscripciones","Alquiler","CRM"]],["fin","Finanzas",1,1,["Gastos","consolidación de estados financieros"]],["log","Compras e inventario",1,1,["Compras","Inventario"]],["web","Sitio web",1,0,["Sitio web","Comercio electrónico","Foro"]],["rh","Recursos humanos",1,0,["Reclutamiento","Vacaciones","Evaluaciones","Gastos"]],["pos","Punto de venta",1,0,["Tienda","Restaurantes"]],["serv","Servicios",1,0,["Proyecto","Hojas de horas","Soporte al cliente","Planeación"]],["mrp","Manufactura",2,0,["MRP","PLM","Calidad","Mantenimiento"]]];
 /* aplicaciones del catálogo que corresponden a cada área de Horas (para llevarlas a Proyecto o GAP) */
 const AREA_APPS={ventas:["ventas","fact","subs","renta","crm"],fin:["gastos","consol"],log:["compras","inv"],web:["web","ecom","foro"],rh:["recl","ausencias","eval","gastos"],pos:["pdv","pdvrest"],serv:["proyecto","hojas","helpdesk","planea"],mrp:["mrp","plm","calidad","mant"]};
 
