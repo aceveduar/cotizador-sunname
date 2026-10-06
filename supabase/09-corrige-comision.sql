@@ -1,37 +1,15 @@
 -- =====================================================================
--- Cotizador Sunname · Reglas de seguridad para cotizaciones y usuarios
--- Ejecutar una sola vez en Supabase: SQL Editor > New query > Run
--- (se puede volver a correr sin problema).
+-- Cotizador Sunname · Corrección a las reglas de 07-proteger-cotizaciones.sql
+-- Ejecutar en Supabase: SQL Editor > New query > Run (se puede volver a correr).
 --
--- 1) Ventas solo modifica sus propias cotizaciones; administración, todas.
---    Todo el equipo sigue VIENDO todas.
--- 2) Nadie puede cambiar quién hizo una cotización.
--- 3) Un descuento arriba del máximo sin autorización regresa a "Por autorizar",
---    aunque se intente guardar por fuera del cotizador.
--- 4) La comisión de ventas se calcula con el canal de la Configuración.
--- 5) Los usuarios nuevos nacen desactivados: para darles acceso hay que
---    ponerles nombre y activo = true (como en 05-usuarios-ventas.sql).
+-- Encontrado al probar con un usuario de ventas: se podía cambiar solo la
+-- comisión de una cotización propia (sin tocar subtotal ni canal) y se guardaba.
+-- Ahora:
+--  * Si no cambia el subtotal ni el canal, la comisión se queda como estaba.
+--  * Si el canal no existe en la Configuración, la comisión es 0.
+-- (07-proteger-cotizaciones.sql ya trae esta misma versión.)
 -- =====================================================================
 
--- ---------- 1. Solo el dueño (o administración) edita ----------
-drop policy if exists "cotizaciones: editar" on public.cotizaciones;
-create policy "cotizaciones: editar" on public.cotizaciones for update to authenticated
-  using (public.es_admin() or (public.es_activo() and creado_por = auth.uid()))
-  with check (public.es_admin() or (public.es_activo() and creado_por = auth.uid()));
-
--- Si no se pudo actualizar (no existe o no es tuya), avisa con error en lugar de no hacer nada
-create or replace function public.actualizar_cotizacion(p_id text, p_cambios jsonb) returns void
-language plpgsql security invoker set search_path = public as $$
-begin
-  update public.cotizaciones set datos = datos || p_cambios where id = p_id;
-  if not found then
-    raise exception 'Solo puedes modificar tus propias cotizaciones' using errcode = '42501';
-  end if;
-end $$;
-revoke execute on function public.actualizar_cotizacion(text, jsonb) from public, anon;
-grant  execute on function public.actualizar_cotizacion(text, jsonb) to authenticated;
-
--- ---------- 2 a 4. Reglas al guardar ----------
 create or replace function public.proteger_cotizacion() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
@@ -99,14 +77,4 @@ begin
   return new;
 end $$;
 
-drop trigger if exists antes_de_guardar on public.cotizaciones;
-create trigger antes_de_guardar before insert or update on public.cotizaciones
-  for each row execute function public.proteger_cotizacion();
-
--- ---------- 5. Usuarios nuevos desactivados ----------
-alter table public.perfiles alter column activo set default false;
-
--- Revisa: cuántas cotizaciones tiene cada quien (las que no tienen dueño solo las edita administración)
-select coalesce(p.nombre, '(sin dueño)') as vendedor, count(*) as cotizaciones
-from public.cotizaciones c left join public.perfiles p on p.id = c.creado_por
-group by 1 order by 2 desc;
+revoke execute on function public.proteger_cotizacion() from public, anon, authenticated;
