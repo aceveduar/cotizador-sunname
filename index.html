@@ -10,7 +10,7 @@
 <title>Cotizador Sunname</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="css/estilos.css?v=20261005c">
+<link rel="stylesheet" href="css/estilos.css?v=20261005d">
 </head>
 <body>
 
@@ -50,7 +50,7 @@
       </div>
 
       <section class="card">
-        <label class="campo"><span>Cliente</span><input class="txt grande" id="cliente" type="text" placeholder="Nombre de la empresa" autocomplete="off"></label>
+        <label class="campo"><span>Cliente <b class="oblig" aria-hidden="true">*</b></span><input class="txt grande" id="cliente" type="text" placeholder="Nombre de la empresa" autocomplete="off" required aria-describedby="cliente-err"><small class="err-campo" id="cliente-err" hidden>Escribe el nombre del cliente para guardar o descargar el PDF.</small></label>
         <details class="mas" id="mas-cliente"><summary>Agregar contacto (aparece en el PDF)</summary>
           <div class="campos">
             <label class="campo"><span>Contacto</span><input class="txt" id="contacto" type="text" placeholder="Nombre y puesto"></label>
@@ -226,8 +226,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="js/calculos.js?v=20261005c"></script>
-<script src="js/app.js?v=20261005c"></script>
+<script src="js/calculos.js?v=20261005d"></script>
+<script src="js/app.js?v=20261005d"></script>
 
 </body>
 </html>

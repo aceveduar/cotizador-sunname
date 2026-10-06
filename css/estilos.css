@@ -94,6 +94,10 @@ h1{font:700 clamp(24px,3.4vw,32px)/1.15 var(--f-display);margin:6px 0 4px;color:
 .campo>span:first-child{color:var(--texto);font-weight:500}
 .txt{width:100%;padding:11px 12px;border:1px solid var(--linea);border-radius:10px;background:var(--fondo)}
 .txt.grande{font-size:17px;padding:13px 14px}
+.oblig{color:var(--alerta);font-weight:600}
+.txt.falta{border-color:var(--alerta);box-shadow:0 0 0 3px color-mix(in srgb,var(--alerta) 15%,transparent)}
+.campo .err-campo{color:var(--alerta);font-weight:500}
+.txt.falta:focus-visible{outline-color:var(--alerta)}
 .mas{margin-top:10px}
 .mas summary{cursor:pointer;color:var(--suave);font-size:13.5px;font-weight:500;width:fit-content}
 .mas .campos{margin-top:12px}

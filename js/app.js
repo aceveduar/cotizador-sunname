@@ -82,6 +82,9 @@ document.addEventListener("click",e=>{
   inp.value=inp.hasAttribute("data-money")?fmtN(n):n;cambio();
 });
 function cambio(){if(S.currentId)S.dirty=true;calc();}
+/* Cliente obligatorio: se marca el campo y se explica debajo, en lugar de solo un aviso que desaparece */
+function faltaCliente(){const c=$("cliente");c.classList.add("falta");c.setAttribute("aria-invalid","true");$("cliente-err").hidden=false;c.scrollIntoView({behavior:"smooth",block:"center"});c.focus({preventScroll:true});}
+$("cliente").addEventListener("input",()=>{if($("cliente").value.trim()){$("cliente").classList.remove("falta");$("cliente").removeAttribute("aria-invalid");$("cliente-err").hidden=true;}});
 function pasarApps(de,a){
   let ids=[];
   if(de==="horas"){if(!S.horasTocado)return;AREAS.forEach(x=>{if($("a-"+x[0]).checked)ids.push(...AREA_APPS[x[0]]);});}
@@ -105,6 +108,7 @@ function restore(o){
   $("mas-cliente").open=!!(o.contacto||o.correo||o.telefono);
   syncApps("p",true);syncApps("g",true);
   S.horasTocado=o!==FRESH&&o["r:modo"]==="horas";
+  $("cliente").classList.remove("falta");$("cliente").removeAttribute("aria-invalid");$("cliente-err").hidden=true;
 }
 
 /* =================== Cálculo =================== */
@@ -211,7 +215,7 @@ async function nuevoFolio(){
 async function guardar(estadoForzado){
   if(!S.db){toast("Sin conexión con la base de datos. Recarga la página.");return false;}
   const R=calc();
-  if(!R.cliente){toast("Escribe el nombre del cliente antes de guardar");$("cliente").focus();return false;}
+  if(!R.cliente){faltaCliente();return false;}
   if(!R.horas||R.total<=0){toast("Completa la cotización antes de guardar (no tiene horas).");return false;}
   const now=new Date().toISOString();
   try{
@@ -322,7 +326,7 @@ async function hacerPDF(R){
 $("b-pdf").addEventListener("click",async()=>{
   const btn=$("b-pdf"),lab=btn.querySelector("span");
   if(!window.jspdf){toast("No se pudo cargar el generador de PDF. Revisa tu conexión y recarga la página.");return;}
-  const R=calc();if(!R.cliente){toast("Escribe el nombre del cliente");$("cliente").focus();return;}
+  const R=calc();if(!R.cliente){faltaCliente();return;}
   btn.disabled=true;lab.textContent="Preparando PDF…";
   try{
     if(S.db&&(!S.currentId||S.dirty)){if(!(await guardar()))return;}
