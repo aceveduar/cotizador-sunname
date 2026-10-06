@@ -558,8 +558,8 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
 </dialog>
 <div class="toast" id="toast" role="status" hidden></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 (function(){
 /* =================== Valores por defecto =================== */
@@ -608,6 +608,7 @@ const merge=d=>{const p=clone(DEF);if(d){d=reparar(d);for(const k in DEF)if(d[k]
 let P=clone(DEF);
 try{const s=localStorage.getItem("sunname-cfg");if(s)P=merge(JSON.parse(s));}catch(e){}
 
+const ajena=q=>!S.admin&&!!S.meId&&!!q&&!!q.creadoPor&&q.creadoPor!==S.meId;
 const S={db:null,user:null,dl:null,meId:null,admin:false,quotes:[],aprob:{},names:{},
   currentId:null,currentFolio:"",currentDoc:null,dirty:false,showInt:false,quien:"todas",fEstado:"activas",R:null,tab:Math.random().toString(36).slice(2)};
 try{S.showInt=localStorage.getItem("sunname-int")==="1";}catch(e){}
@@ -893,7 +894,7 @@ async function guardar(estadoForzado){
       descPct:R.descPct,canal:R.canal.id,origenGap:R.gapFolio||null,comision:Math.round(R.com),estado,creadoPor:prev.creadoPor||S.meId||null,creado:prev.creado||now,actualizado:now,inputs:snapshot()};
     await S.db.collection("cotizaciones").doc(S.currentId).set(doc);
     S.currentDoc=doc;S.dirty=false;calc();return true;
-  }catch(e){toast(e&&e.code==="invalid_argument"?"No tienes permiso para guardar cotizaciones. Pide acceso de Colaborador.":"No se pudo guardar. Intenta de nuevo.");return false;}
+  }catch(e){toast(e&&e.code==="invalid_argument"?(ajena(S.currentDoc)?"Esta cotización es de otra persona. Usa «Duplicar» para hacer tu propia versión.":"No tienes permiso para guardar esta cotización."):"No se pudo guardar. Intenta de nuevo.");return false;}
 }
 $("b-guardar").addEventListener("click",async()=>{
   const req=S.R&&S.R.requiere;
@@ -1069,8 +1070,8 @@ function renderHist(){
       <span class="cl"><b>${esc(q.cliente)}</b><small>${esc(q.titulo)} · ${hrs(q.horas||0)}${+q.descPct?" · "+(+q.descPct)+"% desc.":""}${q.origenGap?" · de "+esc(q.origenGap):""}</small>${t?`<span class="tag ${t[0]}">${t[1]}</span>`:""}</span>
       <span class="vd" data-uid="${esc(q.creadoPor||"")}"></span>
       <span class="mt">${money(q.subtotal||0)}</span>
-      <span class="es"><select class="sel" data-est="${esc(q.id)}" data-e="${esc(q.estado)}" aria-label="Estado de ${esc(q.folio)}" ${q.estado==="por_autorizar"&&!S.admin?"disabled":""}>${ESTADOS.filter(e=>e[0]!=="por_autorizar"||q.estado==="por_autorizar").filter(e=>e[0]!=="autorizada"||q.estado==="autorizada").map(e=>`<option value="${e[0]}" ${e[0]===q.estado?"selected":""}>${e[1]}</option>`).join("")}</select>
-        ${q.estado==="perdida"?`<select class="sel" data-motivo="${esc(q.id)}" aria-label="Motivo de pérdida"><option value="">¿Por qué se perdió?</option>${MOTIVOS.map(m=>`<option ${m===q.motivo?"selected":""}>${m}</option>`).join("")}</select>`:""}
+      <span class="es"><select class="sel" data-est="${esc(q.id)}" data-e="${esc(q.estado)}" aria-label="Estado de ${esc(q.folio)}" ${(q.estado==="por_autorizar"&&!S.admin)||ajena(q)?"disabled":""} ${ajena(q)?'title="Solo quien la hizo o administración puede cambiarla"':""}>${ESTADOS.filter(e=>e[0]!=="por_autorizar"||q.estado==="por_autorizar").filter(e=>e[0]!=="autorizada"||q.estado==="autorizada").map(e=>`<option value="${e[0]}" ${e[0]===q.estado?"selected":""}>${e[1]}</option>`).join("")}</select>
+        ${q.estado==="perdida"?`<select class="sel" data-motivo="${esc(q.id)}" aria-label="Motivo de pérdida" ${ajena(q)?"disabled":""}><option value="">¿Por qué se perdió?</option>${MOTIVOS.map(m=>`<option ${m===q.motivo?"selected":""}>${m}</option>`).join("")}</select>`:""}
         ${q.modo==="gap"&&q.estado==="ganada"?`<button class="btn chico" data-g2p="${esc(q.id)}">Pasar a proyecto</button>`:""}</span>
       <span class="acc"><button class="btn linea chico" data-abrir="${esc(q.id)}">Abrir</button><button class="btn linea chico" data-dup="${esc(q.id)}">Duplicar</button></span></div>`;}).join("");
   // administración: comisiones y motivos del mes
@@ -1103,7 +1104,7 @@ document.addEventListener("click",async e=>{
   if(t.dataset.g2p){gapAProyecto(q);return;}
   if(t.dataset.abrir||t.dataset.dup){
     restore(FRESH);restore(q.inputs||{});drawDynamic();restore(q.inputs||{});
-    if(t.dataset.abrir){S.currentId=q.id;S.currentFolio=q.folio;S.currentDoc=q;}
+    if(t.dataset.abrir){S.currentId=q.id;S.currentFolio=q.folio;S.currentDoc=q;if(ajena(q))toast("Esta cotización es de otra persona: puedes verla y descargar el PDF. Para cambiarla, usa «Duplicar».");}
     else{S.currentId=null;S.currentFolio="";S.currentDoc=null;toast("Copia creada. Ajusta y guarda para asignar un folio nuevo.");}
     S.dirty=false;ir("cot");calc();return;
   }
@@ -1121,7 +1122,7 @@ document.addEventListener("change",async e=>{
   const id=s.dataset.est,now=new Date().toISOString(),upd={estado:s.value,actualizado:now};s.dataset.e=s.value;
   if(["enviada","ganada","perdida"].includes(s.value))upd[s.value]=now;
   try{await S.db.collection("cotizaciones").doc(id).update(upd);toast(s.value==="perdida"?"Marcada como perdida. Elige el motivo debajo del estado.":"Estado actualizado: "+EST[s.value]);}
-  catch(err){toast("No se pudo cambiar el estado.");renderHist();}
+  catch(err){toast(err&&err.code==="invalid_argument"?"Solo quien hizo la cotización o administración puede cambiar su estado.":"No se pudo cambiar el estado.");renderHist();}
 });
 $("b-exp").addEventListener("click",async()=>{
   if(!window.XLSX){toast("No se pudo cargar el generador de Excel. Recarga la página.");return;}
@@ -1421,7 +1422,7 @@ const localDL={save:async({filename,data})=>{
 const SUPABASE_URL="https://wemyausioojlghafwolj.supabase.co";
 const SUPABASE_KEY="sb_publishable_Lu9Yn0bp12DO178UWzqXfg_zSWF0E42";
 
-function cargarScript(src){return new Promise((ok,no)=>{const e=document.createElement("script");e.src=src;e.onload=ok;e.onerror=no;document.head.appendChild(e);});}
+function cargarScript(src,sri){return new Promise((ok,no)=>{const e=document.createElement("script");e.src=src;if(sri){e.integrity=sri;e.crossOrigin="anonymous";}e.onload=ok;e.onerror=no;document.head.appendChild(e);});}
 function supaDB(sb){
   const subs={},avisar=t=>setTimeout(()=>(subs[t]||[]).forEach(f=>f()),0);
   const canal=sb.channel("cotizador");
@@ -1483,7 +1484,7 @@ async function entrar(session){
 }
 async function iniciarSupabase(){
   const tipo=(location.hash.match(/type=([a-z]+)/)||[])[1];
-  try{await cargarScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js");}
+  try{await cargarScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js","sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF");}
   catch(e){verLogin("entrar","No se pudo conectar. Revisa tu internet y recarga la página.");return;}
   // bloqueo simple de sesión: el de pestañas del navegador puede quedarse esperando en algunos equipos
   const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{lock:async(n,t,fn)=>await fn()}});S.sb=sb;
