@@ -129,6 +129,14 @@ h1{font:700 clamp(24px,3.4vw,32px)/1.15 var(--f-display);margin:6px 0 4px;color:
 .chip:has(input:checked) .dot::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--marca-texto-acento)}
 .chip:has(input:focus-visible){outline:2px solid var(--marca-acento);outline-offset:2px}
 .chip small{color:var(--suave);font-weight:400}
+.chips.areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.areas .chip{border-radius:12px;align-items:flex-start;padding:11px 14px}
+.areas .chip .dot{margin-top:3px}
+.areas .chip .apps{display:block;font-size:12.5px;color:var(--suave);font-weight:400;line-height:1.35;margin-top:2px}
+.apps-hint{margin:0 0 4px;font-size:13px;color:var(--suave)}
+.apps-cat{margin-top:12px}
+.apps-cat .mini{margin-bottom:8px;text-transform:none;letter-spacing:0;font-size:12.5px}
+.chips.compact .chip{padding:6px 12px;font-size:13.5px}
 .seg{display:inline-flex;flex-wrap:wrap;gap:4px;background:var(--superficie-2);padding:4px;border-radius:12px}
 .seg label,.seg button{position:relative;padding:8px 14px;border-radius:9px;cursor:pointer;font-weight:500;font-size:14px;color:var(--suave);border:0;background:none}
 .seg input{position:absolute;opacity:0;pointer-events:none}
@@ -375,7 +383,7 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
         </details>
 
         <div data-pane="horas">
-          <div class="grupo"><h3>¿Qué áreas va a usar?</h3><div class="chips" id="areas"></div></div>
+          <div class="grupo"><h3>¿Qué áreas va a usar?</h3><div class="chips areas" id="areas"></div></div>
           <div class="grupo fila2">
             <label class="campo" style="width:200px"><span>Empleados</span><div class="stepper" data-step="1"><button type="button" aria-label="Menos">−</button><input id="h-emp" type="number" min="1" value="10"><button type="button" aria-label="Más">+</button></div></label>
             <div class="campo"><span>Margen sobre Odoo</span><div class="seg" id="margenes"></div></div>
@@ -385,6 +393,7 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
 
         <div data-pane="proy" hidden>
           <div class="grupo"><h3>Alcance</h3><div class="campos" id="p-alc"></div></div>
+          <div class="grupo"><h3>Aplicaciones de Odoo</h3><p class="apps-hint" data-nota-apps></p><div id="p-apps"></div></div>
           <div class="grupo"><h3>Visitas presenciales</h3><div class="campos" id="p-vis"></div></div>
           <div class="grupo"><h3>Desarrollos y soporte</h3><div class="campos" id="p-ext"></div></div>
           <div class="grupo" id="p-gap-w" hidden>
@@ -396,6 +405,7 @@ dialog.notas.ancho{width:min(780px,calc(100% - 32px))}
 
         <div data-pane="gap" hidden>
           <div class="grupo"><h3>Alcance del análisis</h3><div class="campos" id="g-alc"></div></div>
+          <div class="grupo"><h3>Aplicaciones de Odoo</h3><p class="apps-hint" data-nota-apps></p><div id="g-apps"></div></div>
           <div class="grupo">
             <label class="switch"><div><b>Ya utiliza Odoo</b><small>Incluye revisión del sistema actual</small></div><input type="checkbox" id="g-odoo"></label>
             <label class="switch"><div><b>Se esperan desarrollos</b><small>Incluye especificación preliminar</small></div><input type="checkbox" id="g-dev" checked></label>
@@ -559,7 +569,21 @@ const DEF={
   empresa:"Sunname", telEmpresa:"", correoEmpresa:"", web:"",
   terminos:"Precios en pesos mexicanos. No incluyen licencias de Odoo, que se contratan directamente con Odoo. Las horas adicionales fuera del alcance acordado se cotizan por separado. El cronograma depende de la disponibilidad y las validaciones del cliente."
 };
-const AREAS=[["ventas","Ventas y CRM",1,1],["fin","Finanzas",1,1],["log","Compras e inventario",1,1],["web","Sitio web",1,0],["rh","Recursos humanos",1,0],["pos","Punto de venta",1,0],["serv","Servicios",1,0],["mrp","Manufactura",2,0]];
+/* Aplicaciones de Odoo por categoría: [id, nombre, marcada por defecto en Proyecto y GAP] */
+const APPS=[
+  ["Ventas",[["crm","CRM"],["ventas","Ventas"],["subs","Suscripciones"],["renta","Alquiler"],["pdv","Punto de venta (tienda)"],["pdvrest","Punto de venta (restaurantes)"]]],
+  ["Finanzas",[["conta","Contabilidad"],["fact","Facturación"],["gastos","Gastos"],["consol","Consolidación de estados financieros"],["docs","Documentos"],["firma","Firma electrónica"],["hoja","Hoja de cálculo (BI)"]]],
+  ["Sitio web",[["web","Sitio web"],["ecom","Comercio electrónico"],["blog","Blog"],["foro","Foro"],["chat","Chat en vivo"],["elearn","eLearning"]]],
+  ["Cadena de suministro",[["inv","Inventario"],["compras","Compras"],["mrp","Manufactura (MRP)"],["plm","PLM"],["mant","Mantenimiento"],["calidad","Calidad"]]],
+  ["Recursos humanos",[["empleados","Empleados"],["recl","Reclutamiento"],["ausencias","Vacaciones"],["eval","Evaluaciones"],["refer","Referencias"],["flota","Flotilla"]]],
+  ["Marketing",[["mkauto","Automatización de marketing"],["mkmail","Marketing por correo"],["mksms","Marketing por SMS"],["mksoc","Marketing social"],["eventos","Eventos"],["encuestas","Encuestas"]]],
+  ["Servicios",[["proyecto","Proyecto"],["hojas","Hojas de horas"],["campo","Servicio externo"],["helpdesk","Soporte al cliente"],["planea","Planeación"],["citas","Citas"]]],
+  ["Productividad",[["conv","Conversaciones",1],["calendario","Calendario",1],["limpieza","Limpieza de datos",1],["tableros","Tableros",1],["aprob","Aprobaciones"],["conoc","Conocimiento"],["voip","VoIP"],["wa","WhatsApp"]]]
+];
+const APP=Object.fromEntries(APPS.flatMap(c=>c[1]).map(a=>[a[0],a[1]]));
+const NOTA_APPS="Las aplicaciones se implementan en su funcionalidad estándar. Cualquier adecuación de funcionamiento o integración se cotiza por separado.";
+/* Áreas del paquete de horas: [id, nombre, peso, marcada por defecto, aplicaciones que incluye (mismos textos que Odoo)] */
+const AREAS=[["ventas","Ventas y CRM",1,1,["Ventas","Facturación","Suscripciones","Alquiler","CRM"]],["fin","Finanzas",1,1,["Gastos","consolidación de estados financieros"]],["log","Compras e inventario",1,1,["Aprovisionamiento","Inventario"]],["web","Sitio web",1,0,["Sitio web","Comercio electrónico","Foro"]],["rh","Recursos humanos",1,0,["Reclutamiento","Vacaciones","Evaluaciones","Gastos"]],["pos","Punto de venta",1,0,["Tienda","Restaurantes"]],["serv","Servicios",1,0,["Proyecto","Hojas de horas","Soporte al cliente","Planeación"]],["mrp","Manufactura",2,0,["MRP","PLM","Calidad","Mantenimiento"]]];
 const ESTADOS=[["borrador","Borrador"],["por_autorizar","Por autorizar"],["autorizada","Autorizada"],["enviada","Enviada"],["ganada","Ganada"],["perdida","Perdida"]];
 const EST=Object.fromEntries(ESTADOS);
 
@@ -605,12 +629,16 @@ function stepper(id,label,val,step=1,hint="",dinero=false){
   const inp=dinero?`<span class="pre">$</span><input id="${id}" type="text" inputmode="numeric" data-money min="0" value="${fmtN(val)}">`:`<input id="${id}" type="number" min="0" value="${val}">`;
   return `<label class="campo"><span>${label}</span><div class="stepper" data-step="${step}"><button type="button" aria-label="Menos">−</button>${inp}<button type="button" aria-label="Más">+</button></div>${hint?`<small>${hint}</small>`:""}</label>`;
 }
-$("areas").innerHTML=AREAS.map(a=>`<label class="chip"><input type="checkbox" id="a-${a[0]}" ${a[3]?"checked":""}><span class="dot"></span>${a[1]}${a[2]>1?" <small>cuenta doble</small>":""}</label>`).join("");
+$("areas").innerHTML=AREAS.map(a=>`<label class="chip"><input type="checkbox" id="a-${a[0]}" ${a[3]?"checked":""}><span class="dot"></span><span>${a[1]}${a[2]>1?" <small>cuenta doble</small>":""}<span class="apps">${a[4].join(", ")}</span></span></label>`).join("");
 $("p-alc").innerHTML=stepper("p-usr","Usuarios",25)+stepper("p-areas","Áreas o departamentos",5)+stepper("p-emp","Empresas",1)+stepper("p-cons","Consultores asignados",2);
 $("p-vis").innerHTML=stepper("p-nvis","Número de visitas",4)+stepper("p-hvis","Horas por visita",8)+stepper("p-vvis","Viáticos por visita",3000,500,"",true);
 $("p-ext").innerHTML=stepper("p-dev","Horas de desarrollo",40,5,"Validadas por el área técnica")+stepper("p-pm","Meses de soporte",3,1,"Después de salir a producción")+stepper("p-pmh","Horas por mes",10);
 $("g-alc").innerHTML=stepper("g-usr","Usuarios",60)+stepper("g-emp","Empresas",2)+stepper("g-areas","Áreas a analizar",8)+stepper("g-suc","Sucursales o plantas",3);
 $("g-viat-w").innerHTML=stepper("g-viat","Viáticos estimados",10000,1000,"",true);
+const appsHTML=pre=>APPS.map(([cat,l])=>`<div class="apps-cat"><div class="mini">${cat}</div><div class="chips compact">${l.map(a=>`<label class="chip"><input type="checkbox" id="${pre}-app-${a[0]}" ${a[2]?"checked":""}><span class="dot"></span>${a[1]}</label>`).join("")}</div></div>`).join("");
+$("p-apps").innerHTML=appsHTML("p");$("g-apps").innerHTML=appsHTML("g");
+$$("[data-nota-apps]").forEach(e=>e.textContent=NOTA_APPS);
+const appsSel=pre=>APPS.map(([cat,l])=>[cat,l.filter(a=>$(pre+"-app-"+a[0]).checked).map(a=>a[1])]).filter(c=>c[1].length);
 ["h-emp","p-areas","p-emp","p-cons","g-emp","g-areas"].forEach(id=>$(id).setAttribute("min","1"));
 const FRESH=snapshot();
 
@@ -649,11 +677,11 @@ function calc(){
   $$(".modo").forEach(l=>l.classList.toggle("on",l.querySelector("input").checked));
   const canal=P.canales.find(c=>c.id===(document.querySelector("input[name=canal]:checked")||{}).value)||P.canales[0];
   const descPct=Math.min(100,v("desc")),desc=descPct/100;
-  let horas=0,sub=0,viat=0,titulo="",desg=[],flags=[],detalle="",dur="",conceptos=[],fasesH=null,cred=0;
+  let horas=0,sub=0,viat=0,titulo="",desg=[],flags=[],detalle="",dur="",conceptos=[],fasesH=null,cred=0,apps=[];
 
   if(modo==="horas"){
     titulo="Paquete de horas";
-    let w=0,sel=[];AREAS.forEach(a=>{if($("a-"+a[0]).checked){w+=a[2];sel.push(a[1]);}});
+    let w=0,sel=[];AREAS.forEach(a=>{if($("a-"+a[0]).checked){w+=a[2];sel.push(a[1]);apps.push([a[1],a[4]]);}});
     let t=w<=0?-1:w<=1?0:w<=3?1:w<=5?2:3;
     if(t>=0&&t<3&&v("h-emp")>P.empTier)t++;
     const mk=((document.querySelector("input[name=margen]:checked")||{}).value==="A"?P.margenA:P.margenB)/100;
@@ -669,7 +697,7 @@ function calc(){
     }
   }
   if(modo==="proy"){
-    titulo="Proyecto de implementación";
+    titulo="Proyecto de implementación";apps=appsSel("p");
     const u=v("p-usr"),ar=Math.max(1,v("p-areas")),em=Math.max(1,v("p-emp")),co=Math.max(1,v("p-cons")),dev=v("p-dev");
     const base=[["Base por "+u+" usuarios",tier(P.pUsuarios,u)],["Áreas ("+ar+" × "+P.hArea+" h)",ar*P.hArea],["Empresas adicionales",(em-1)*P.hEmpresa],
       ["Visitas ("+v("p-nvis")+" × "+v("p-hvis")+" h × "+co+" consultores)",v("p-nvis")*v("p-hvis")*co]];
@@ -696,7 +724,7 @@ function calc(){
     if(u>50||em>2||ar>8)flags.push(["alerta","Proyecto grande: vende primero un análisis GAP"]);
   }
   if(modo==="gap"){
-    titulo="Análisis GAP";
+    titulo="Análisis GAP";apps=appsSel("g");
     const r=[["Preparación y cierre",P.gBase],["Usuarios ("+v("g-usr")+")",tier(P.gUsuarios,v("g-usr"))],["Empresas adicionales",Math.max(0,v("g-emp")-1)*P.gEmpresa],
       ["Áreas ("+v("g-areas")+" × "+P.gArea+" h)",v("g-areas")*P.gArea],["Sucursales o plantas",tier(P.gSuc,v("g-suc"))],
       ["Revisión de Odoo actual",$("g-odoo").checked?P.gOdoo:0],["Especificación de desarrollos",$("g-dev").checked?P.gDev:0],["Visita en sitio",$("g-visita").checked?P.gVisita:0]];
@@ -776,7 +804,7 @@ Gracias por considerar a ${emp}. Te comparto la cotización de ${titulo.toLowerC
 
 ${detalle}
 
-Horas estimadas: ${hrs(horas)}
+${apps.length?"Aplicaciones de Odoo (funcionalidad estándar; adecuaciones e integraciones se cotizan aparte):\n"+apps.map(a=>`  - ${a[0]}: ${a[1].join(", ")}`).join("\n")+"\n\n":""}Horas estimadas: ${hrs(horas)}
 Duración estimada: ${dur||"—"}
 Inversión: ${money(subD)} + IVA${viat?" + viáticos ("+money(viat)+")":""} = ${money(total)} MXN${dAmt?" (incluye descuento de "+money(dAmt)+")":""}
 ${pagosTxt}
@@ -787,7 +815,7 @@ Adjunto el PDF con el detalle. Quedo atento a tus comentarios.
 Saludos,
 ${firma}`;
   $("r-texto").textContent=texto;
-  S.R={modo,titulo,horas,sub,dAmt,anticipo,descPct,subD,viat,iva,total,com,canal,dur,detalle,conceptos,texto,cliente:cli,requiere,flags,pagos,fasesH,lic,cred,gapFolio:modo==="proy"?$("p-gapfolio").value:""};
+  S.R={modo,titulo,horas,sub,dAmt,anticipo,descPct,subD,viat,iva,total,com,canal,dur,detalle,apps,conceptos,texto,cliente:cli,requiere,flags,pagos,fasesH,lic,cred,gapFolio:modo==="proy"?$("p-gapfolio").value:""};
   return S.R;
 }
 
@@ -879,6 +907,15 @@ async function hacerPDF(R){
   d.setTextColor(60,68,65);d.setFont("helvetica","normal");d.setFontSize(10.5);
   const lines=d.splitTextToSize(pdfTxt(R.detalle),W-2*M);d.text(lines,M,y+28,{lineHeightFactor:1.45});
   y=y+28+lines.length*15.2+18;
+  // aplicaciones de Odoo
+  if(R.apps&&R.apps.length){
+    ensure(60);d.setTextColor(...pri);d.setFont("helvetica","bold");d.setFontSize(11);T(R.modo==="horas"?"Aplicaciones de Odoo incluidas":"Aplicaciones de Odoo consideradas",M,y);y+=18;
+    const LW=150;
+    R.apps.forEach(a=>{const l=d.splitTextToSize(pdfTxt(a[1].join(", ")),W-2*M-LW);ensure(l.length*13.3+6);
+      d.setFont("helvetica","bold");d.setFontSize(10);d.setTextColor(27,34,32);T(a[0],M,y);
+      d.setFont("helvetica","normal");d.setTextColor(60,68,65);d.text(l,M+LW,y,{lineHeightFactor:1.35});y+=l.length*13.3+6;});
+    d.setFontSize(9);d.setTextColor(110,118,115);const nt=d.splitTextToSize(pdfTxt(NOTA_APPS),W-2*M);ensure(nt.length*12+4);d.text(nt,M,y+4,{lineHeightFactor:1.35});y+=nt.length*12.2+22;
+  }
   // tabla de conceptos
   d.setFillColor(240,244,248);d.rect(M,y,W-2*M,26,"F");
   d.setTextColor(95,106,102);d.setFont("helvetica","bold");d.setFontSize(9);T("CONCEPTO",M+12,y+17);T("IMPORTE",W-M-12,y+17,{align:"right"});
@@ -1018,7 +1055,8 @@ function gapAProyecto(q){
   S.currentId=null;S.currentFolio="";S.currentDoc=null;S.dirty=false;
   restore(FRESH);drawDynamic();
   restore({"r:modo":"proy",cliente:q.cliente,contacto:i.contacto||"",correo:i.correo||"",telefono:i.telefono||"",
-    "p-usr":i["g-usr"]||25,"p-areas":i["g-areas"]||5,"p-emp":i["g-emp"]||1,"p-gapfolio":q.folio,"p-gapmonto":q.subtotal||0,"p-gapcred":true});
+    "p-usr":i["g-usr"]||25,"p-areas":i["g-areas"]||5,"p-emp":i["g-emp"]||1,"p-gapfolio":q.folio,"p-gapmonto":q.subtotal||0,"p-gapcred":true,
+    ...Object.fromEntries(Object.keys(APP).filter(id=>("g-app-"+id) in i).map(id=>["p-app-"+id,i["g-app-"+id]]))});
   ir("cot");calc();toast("Proyecto creado a partir del análisis "+q.folio+". Revisa el alcance y guarda.");
 }
 document.addEventListener("click",async e=>{
